@@ -572,7 +572,7 @@ public class FilesystemKeystoreServiceImpl implements KeystoreService, Configura
         }
         KeyPair keyPair;
         try {
-            KeyPairGenerator keyGen = KeyPairGenerator.getInstance(algorithm);
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance(algorithm, "BC");
             keyGen.initialize(keySize, secureRandom);
             keyPair = keyGen.generateKeyPair();
             setEntry(alias, new PrivateKeyEntry(keyPair.getPrivate(),
@@ -593,7 +593,7 @@ public class FilesystemKeystoreServiceImpl implements KeystoreService, Configura
         }
         KeyPair keyPair;
         try {
-            KeyPairGenerator keyGen = KeyPairGenerator.getInstance(algorithm);
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance(algorithm, "BC");
             keyGen.initialize(algorithmParameter, secureRandom);
             keyPair = keyGen.generateKeyPair();
             setEntry(alias, new PrivateKeyEntry(keyPair.getPrivate(),
