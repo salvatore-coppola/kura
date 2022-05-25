@@ -434,6 +434,9 @@ public class ESTEnrollmentService implements EnrollmentService, ConfigurableComp
 
         }
 
+        // disable hostname verification
+        estServiceBuilder.withHostNameAuthorizer(null);
+
         this.estService = estServiceBuilder.withTimeout(60000).build();
     }
 
