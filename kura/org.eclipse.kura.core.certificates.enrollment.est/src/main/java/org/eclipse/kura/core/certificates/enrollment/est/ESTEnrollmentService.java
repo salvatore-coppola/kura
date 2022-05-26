@@ -110,6 +110,7 @@ public class ESTEnrollmentService implements EnrollmentService, ConfigurableComp
     private static final Logger logger = LoggerFactory.getLogger(ESTEnrollmentService.class);
 
     private static final String EST_CACERTS_ALIAS_PREFIX = "est-cacerts_";
+    private static final String EST_CACERTS_BOOTSTRAP_ALIAS = "est-cacerts-bootstrap";
     private static final String EST_CLIENT_CERT_ALIAS = "est-client-certs";
     private static final String EST_PRIVATE_KEY_CERT = "est-private-key-certs";
 
@@ -211,20 +212,32 @@ public class ESTEnrollmentService implements EnrollmentService, ConfigurableComp
 
     private void initESTService() throws Exception {
 
-        Object[] truesteCACerts = null;
+        List<X509Certificate> trustedAnchors = null;
         CRL[] revocationList = null;
 
         if (needBootstrap()) {
-            // the ca root certificate provided by the configuration is only needed for the bootstrapping
-            wipeAllCaCerts();
+            wipeAllServerCerts();
             logger.info("Bootstrapping EST connection...");
-            truesteCACerts = readPemCertificates(this.estOptions.getServer().getBootstrapCertificate());
+
+            List<X509Certificate> bootstrapCertificates = readPemCertificates(
+                    this.estOptions.getServer().getBootstrapCertificate());
+            if (bootstrapCertificates.isEmpty()) {
+                throw new KuraException(KuraErrorCode.CONFIGURATION_REQUIRED_ATTRIBUTE_MISSING,
+                        "server.bootstrap-certificate");
+            }
+            saveBootstrapCert(bootstrapCertificates);
+            trustedAnchors = bootstrapCertificates;
         } else {
-            truesteCACerts = getCertificatesEntryAsX509Certificate(this::getStoredCACerts);
+            trustedAnchors = getCertificatesEntryAsX509Certificate(this::getStoredCACerts);
+            TrustedCertificateEntry bootstrapCert = getESTBootstrapCert();
+            if (bootstrapCert != null) {
+                trustedAnchors.add((X509Certificate) bootstrapCert.getTrustedCertificate());
+            }
+
             revocationList = getRevocationList();
         }
 
-        buildESTService(truesteCACerts, revocationList);
+        buildESTService(trustedAnchors, revocationList);
 
         if (needBootstrap()) {
 
@@ -244,13 +257,24 @@ public class ESTEnrollmentService implements EnrollmentService, ConfigurableComp
             }
 
             // rebuild client with the explicit Trust Anchor
-            buildESTService(getCertificatesEntryAsX509Certificate(this::getStoredCACerts), getRevocationList());
+            trustedAnchors = getCertificatesEntryAsX509Certificate(this::getStoredCACerts);
+            TrustedCertificateEntry bootstrapCert = getESTBootstrapCert();
+            if (bootstrapCert != null) {
+                trustedAnchors.add((X509Certificate) bootstrapCert.getTrustedCertificate());
+            }
+            buildESTService(trustedAnchors, getRevocationList());
 
             logger.info("Bootstrap ended.");
         }
     }
 
-    private void wipeAllCaCerts() {
+    private void saveBootstrapCert(List<X509Certificate> bootstrapCertificates) throws KuraException {
+        // can be more than one ?
+        this.keystoreService.setEntry(EST_CACERTS_BOOTSTRAP_ALIAS,
+                new TrustedCertificateEntry(bootstrapCertificates.get(0)));
+    }
+
+    private void wipeAllServerCerts() {
         getStoredEntriesByAliasPrefix(EST_CACERTS_ALIAS_PREFIX).map(Map.Entry::getKey).forEach(alias -> {
             try {
                 this.keystoreService.deleteEntry(alias);
@@ -259,6 +283,13 @@ public class ESTEnrollmentService implements EnrollmentService, ConfigurableComp
                         this.keystoreServicePid, e);
             }
         });
+
+        try {
+            this.keystoreService.deleteEntry(EST_CACERTS_BOOTSTRAP_ALIAS);
+        } catch (KuraException e) {
+            logger.error("Cannot delete entry with alias {} from keystore service with pid: {}",
+                    EST_CACERTS_BOOTSTRAP_ALIAS, this.keystoreServicePid, e);
+        }
     }
 
     private void addCaCertsChainToKeystore(Store<X509CertificateHolder> certificateStore) {
@@ -398,6 +429,10 @@ public class ESTEnrollmentService implements EnrollmentService, ConfigurableComp
         return (T) storedEntity;
     }
 
+    private TrustedCertificateEntry getESTBootstrapCert() throws KuraException {
+        return getESTEntity(EST_CACERTS_BOOTSTRAP_ALIAS, TrustedCertificateEntry.class);
+    }
+
     private TrustedCertificateEntry getESTClientCert() throws KuraException {
         return getESTEntity(EST_CLIENT_CERT_ALIAS, TrustedCertificateEntry.class);
     }
@@ -410,7 +445,7 @@ public class ESTEnrollmentService implements EnrollmentService, ConfigurableComp
         return getESTEntity(CLIENT_AUTH_ALIAS, PrivateKeyEntry.class);
     }
 
-    private void buildESTService(Object[] truesteCACerts, CRL[] revocationList) throws Exception {
+    private void buildESTService(List<X509Certificate> truesteCACerts, CRL[] revocationList) throws Exception {
         JsseESTServiceBuilder estServiceBuilder = new JsseESTServiceBuilder(this.estOptions.getServer().getHost(),
                 JcaJceUtils.getCertPathTrustManager(toTrustAnchor(truesteCACerts), revocationList));
 
@@ -538,6 +573,11 @@ public class ESTEnrollmentService implements EnrollmentService, ConfigurableComp
 
     protected void deactivate() {
         logger.info("deactivating...");
+
+        this.enrollmentService.shutdownNow();
+        this.delayer.shutdownNow();
+
+        logger.info("deactivated");
     }
 
     protected void updated(Map<String, Object> properties) {
@@ -628,12 +668,13 @@ public class ESTEnrollmentService implements EnrollmentService, ConfigurableComp
 
     }
 
-    private Certificate[] getCertificatesEntryAsX509Certificate(Supplier<TrustedCertificateEntry[]> entrySupplier) {
-        TrustedCertificateEntry[] storedCaCerts = entrySupplier.get();
-        Certificate[] certificates = new Certificate[0];
-        if (storedCaCerts != null && storedCaCerts.length > 0) {
-            certificates = Arrays.stream(storedCaCerts).map(TrustedCertificateEntry::getTrustedCertificate)
-                    .toArray(Certificate[]::new);
+    private List<X509Certificate> getCertificatesEntryAsX509Certificate(
+            Supplier<TrustedCertificateEntry[]> entrySupplier) {
+        TrustedCertificateEntry[] storedCerts = entrySupplier.get();
+        List<X509Certificate> certificates = new ArrayList<>();
+        if (storedCerts != null && storedCerts.length > 0) {
+            certificates = Arrays.stream(storedCerts)
+                    .map(cert -> X509Certificate.class.cast(cert.getTrustedCertificate())).collect(Collectors.toList());
         }
         return certificates;
     }
@@ -714,17 +755,17 @@ public class ESTEnrollmentService implements EnrollmentService, ConfigurableComp
         return isExpired;
     }
 
-    private static Object[] readPemCertificates(String pemString) throws Exception {
-        List<Object> certs = new ArrayList<>();
+    private static List<X509Certificate> readPemCertificates(String pemString) throws Exception {
+        List<X509Certificate> certs = new ArrayList<>();
         try (Reader r = new StringReader(pemString); PemReader reader = new PemReader(r);) {
 
             PemObject o;
 
             while ((o = reader.readPemObject()) != null) {
-                certs.add(new X509CertificateHolder(o.getContent()));
+                certs.add(toJavaX509Certificate(o));
             }
         }
-        return certs.toArray(new Object[certs.size()]);
+        return certs;
     }
 
     class BCChannelBindingProvider implements ChannelBindingProvider {
@@ -744,11 +785,11 @@ public class ESTEnrollmentService implements EnrollmentService, ConfigurableComp
         }
     }
 
-    private static Set<TrustAnchor> toTrustAnchor(Object[] oo) throws Exception {
+    private static Set<TrustAnchor> toTrustAnchor(List<X509Certificate> certificates) throws Exception {
 
         Set<TrustAnchor> out = new HashSet<>();
-        for (Object o : oo) {
-            out.add(new TrustAnchor(toJavaX509Certificate(o), null));
+        for (X509Certificate c : certificates) {
+            out.add(new TrustAnchor(c, null));
         }
 
         return out;
@@ -764,6 +805,9 @@ public class ESTEnrollmentService implements EnrollmentService, ConfigurableComp
                     .generateCertificate(new ByteArrayInputStream(((X509Certificate) o).getEncoded()));
         } else if (o instanceof java.security.cert.X509Certificate) {
             return (java.security.cert.X509Certificate) o;
+        } else if (o instanceof PemObject) {
+            return (java.security.cert.X509Certificate) fac
+                    .generateCertificate(new ByteArrayInputStream(((PemObject) o).getContent()));
         }
         throw new IllegalArgumentException(
                 "Object not X509CertificateHolder, javax..X509Certificate or java...X509Certificate");

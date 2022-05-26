@@ -25,7 +25,7 @@
             required="true"
             default="false"
             description="Enables the ESTEnrollmentSErvice"/>
-    
+
         <AD id="server.url"
             name="EST server endpoint"
             type="String"
@@ -40,7 +40,7 @@
             cardinality="0"
             required="false"
             default=""
-            description="CA certificate in PEM format used as Implicit Trust Anchor in the bootstrap procedure. It will be ignored afterwards.|TextArea" />
+            description="CA certificate in PEM format used as Implicit Trust Anchor in the bootstrap procedure. It will be loaded from KeystoreService afterwards.|TextArea" />
             
         <AD id="server.rollover"
             name="CA certificate rollover"
