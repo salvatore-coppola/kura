@@ -11,13 +11,10 @@ Bundle-ClassPath: .,
  lib/grpc-netty-shaded-1.48.1.jar,
  lib/grpc-protobuf-1.48.1.jar,
  lib/grpc-stub-1.48.1.jar,
- lib/grpc-context-1.48.1.jar,
  lib/grpc-core-1.48.1.jar,
  lib/grpc-protobuf-lite-1.48.1.jar,
  lib/perfmark-api-0.25.0.jar,
  lib/grpc-api-1.48.1.jar,
- lib/grpc-census-1.48.1.jar,
- lib/opencensus-api-0.31.1.jar,
  lib/annotations-api-6.0.53.jar
 Bundle-ActivationPolicy: lazy
 Import-Package: com.google.common.base;version="25.0.0",
