@@ -69,8 +69,7 @@ public class DnsmasqTool implements DhcpLinuxTool {
         logger.debug("DNSMASQ - starting dnsmasq service for interface {}.", interfaceName);
 
         try {
-            this.configsLastHash.put(interfaceName,
-                    sha1(Paths.get(DhcpServerManager.getConfigFilename(interfaceName))));
+            this.configsLastHash.put(interfaceName, sha1(Paths.get(getConfigFilename(interfaceName))));
         } catch (Exception e) {
             throw new KuraProcessExecutionErrorException(e, "Failed to start DHCP server: " + e.getMessage());
         }
@@ -83,7 +82,7 @@ public class DnsmasqTool implements DhcpLinuxTool {
     @Override
     public boolean disableInterface(String interfaceName) throws KuraProcessExecutionErrorException {
         try {
-            File configFile = new File(DhcpServerManager.getConfigFilename(interfaceName));
+            File configFile = new File(getConfigFilename(interfaceName));
 
             boolean isInterfaceDisabled = true;
 
@@ -106,13 +105,15 @@ public class DnsmasqTool implements DhcpLinuxTool {
     private boolean isConfigFileAlteredOrNonExistent(String interfaceName)
             throws NoSuchAlgorithmException, IOException {
 
-        File configFile = new File(DhcpServerManager.getConfigFilename(interfaceName));
+        String configFilename = getConfigFilename(interfaceName);
+
+        File configFile = new File(configFilename);
 
         if (!configFile.exists()) {
             return true;
         }
 
-        byte[] currentHash = sha1(Paths.get(DhcpServerManager.getConfigFilename(interfaceName)));
+        byte[] currentHash = sha1(Paths.get(configFilename));
 
         if (this.configsLastHash.containsKey(interfaceName)) {
             return !Arrays.equals(currentHash, this.configsLastHash.get(interfaceName));
@@ -142,5 +143,9 @@ public class DnsmasqTool implements DhcpLinuxTool {
         digest.reset();
 
         return digest.digest(fileContent);
+    }
+
+    protected String getConfigFilename(String interfaceName) {
+        return DhcpServerManager.getConfigFilename(interfaceName);
     }
 }
