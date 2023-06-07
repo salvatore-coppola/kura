@@ -12,12 +12,37 @@
 #  Eurotech
 #
 
-INSTALL_DIR=/opt/eclipse
+backup_files() {
+    SUFFIX="${1}"
 
-# NetworkManager cannot modify connection settings that are from /etc/network/interfaces
-if test -f /etc/network/interfaces; then
-    mv /etc/network/interfaces /etc/network/interfaces.old
-fi
+    shift
+
+    for file in "${@}"
+    do
+        if [ -f "${file}" ]
+        then
+            mv "${file}" "${file}.${SUFFIX}"
+        fi
+    done
+}
+
+disable_netplan() {
+    # disable netplan configuration files
+    backup_files kurasave /lib/netplan/*.yaml /etc/netplan/*.yaml
+
+    if [ -d /etc/netplan  ]
+    then
+
+    # use NM renderer
+        cat > /etc/netplan/zz-kura-use-nm.yaml <<EOF
+network:
+  version: 2
+  renderer: NetworkManager
+EOF
+    fi
+}
+
+INSTALL_DIR=/opt/eclipse
 
 # create known kura install location
 ln -sf ${INSTALL_DIR}/kura_* ${INSTALL_DIR}/kura
@@ -60,6 +85,12 @@ systemctl stop chrony
 systemctl disable chrony
 systemctl enable NetworkManager
 systemctl start NetworkManager
+systemctl enable ModemManager
+systemctl stop dnsmasq
+systemctl disable dnsmasq
+systemctl stop dhcpcd
+systemctl disable dhcpcd
+systemctl disable systemd-networkd
 
 # set up users and grant permissions
 cp ${INSTALL_DIR}/kura/install/manage_kura_users.sh ${INSTALL_DIR}/kura/.data/manage_kura_users.sh
@@ -89,16 +120,9 @@ systemctl enable firewall
 if [ -d /etc/cloud/cloud.cfg.d ]; then
     echo "network: {config: disabled}" | sudo tee -a /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg > /dev/null
 fi
-if [ -d /etc/netplan/ ]; then
-    cp /etc/netplan/00-installer-config.yaml /etc/netplan/00-installer-config.yaml.BAK
-    cat << EOF >> /etc/netplan/00-installer-config.yaml
-# This file describes the network interfaces available on your system
-# For more information, see netplan(5).
-network:
-  version: 2
-  renderer: NetworkManager
-EOF
-fi
+
+disable_netplan
+
 if [ -d /usr/lib/NetworkManager/conf.d/ ]; then
     TO_REMOVE=$( find /usr/lib/NetworkManager/conf.d/ -type f -name  "*-globally-managed-devices.conf" | awk 'NR==1{print $1}' )
 
@@ -106,12 +130,37 @@ if [ -d /usr/lib/NetworkManager/conf.d/ ]; then
         rm "${TO_REMOVE}"
     fi
 fi
+# comment network interface configurations in interfaces file
+if python3 -V > /dev/null 2>&1
+then
+    python3 /opt/eclipse/kura/install/comment_interfaces_file.py
+else
+    echo "python3 not found. Please manually review the /etc/network/interfaces file and comment configured network interfaces."
+fi
+
+# install dnsmasq default configuration
+if [ -f /etc/default/dnsmasq ]; then
+    mv /etc/default/dnsmasq /etc/default/dnsmasq.old
+fi
+cp ${INSTALL_DIR}/kura/install/dnsmasq /etc/default/dnsmasq
 
 # disable NTP service
 if command -v timedatectl > /dev/null ;
   then
     timedatectl set-ntp false
 fi
+
+#set up bind/named
+mkdir -p /var/named
+chown -R bind /var/named
+cp ${INSTALL_DIR}/kura/install/named.ca /var/named/
+cp ${INSTALL_DIR}/kura/install/named.rfc1912.zones /etc/
+cp ${INSTALL_DIR}/kura/install/usr.sbin.named /etc/apparmor.d/
+if [ ! -f "/etc/bind/rndc.key" ] ; then
+    rndc-confgen -r /dev/urandom -a
+fi
+chown bind:bind /etc/bind/rndc.key
+chmod 600 /etc/bind/rndc.key
 
 # set up logrotate - no need to restart as it is a cronjob
 cp ${INSTALL_DIR}/kura/install/kura.logrotate /etc/logrotate-kura.conf

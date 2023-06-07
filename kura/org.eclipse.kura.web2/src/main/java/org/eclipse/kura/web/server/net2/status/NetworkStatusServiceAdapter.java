@@ -233,14 +233,16 @@ public class NetworkStatusServiceAdapter {
         if (gwtConfig instanceof GwtModemInterfaceConfig && networkInterfaceInfo instanceof ModemInterfaceStatus) {
             GwtModemInterfaceConfig gwtModemConfig = (GwtModemInterfaceConfig) gwtConfig;
             ModemInterfaceStatus modemInterfaceInfo = (ModemInterfaceStatus) networkInterfaceInfo;
-            int activeSimIndex = modemInterfaceInfo.getActiveSimIndex();
             Sim activeSim = null;
+
             List<Sim> availableSims = modemInterfaceInfo.getAvailableSims();
-            if (Objects.nonNull(availableSims) && !availableSims.isEmpty()) {
-                activeSim = modemInterfaceInfo.getAvailableSims().get(activeSimIndex);
+            for (Sim sim : availableSims) {
+                if (sim.isActive() && sim.isPrimary()) {
+                    activeSim = sim;
+                }
             }
 
-            gwtModemConfig.setHwState(modemInterfaceInfo.getState().toString());
+            gwtModemConfig.setHwState(modemInterfaceInfo.getConnectionStatus().name());
             gwtModemConfig.setHwSerial(modemInterfaceInfo.getSerialNumber());
             gwtModemConfig.setHwRssi(String.valueOf(modemInterfaceInfo.getSignalStrength()));
             gwtModemConfig.setHwICCID(activeSim != null ? activeSim.getIccid() : "NA");
@@ -251,6 +253,7 @@ public class NetworkStatusServiceAdapter {
             gwtModemConfig.setHwBand(getModemBands(modemInterfaceInfo));
             gwtModemConfig.setModel(ellipsis(modemInterfaceInfo.getModel(), 40));
             gwtModemConfig.setManufacturer(ellipsis(modemInterfaceInfo.getManufacturer(), 20));
+            gwtModemConfig.setModemId(modemInterfaceInfo.getModel());
             gwtModemConfig.setGpsSupported(modemInterfaceInfo.isGpsSupported());
             gwtModemConfig.setHwFirmware(modemInterfaceInfo.getFirmwareVersion());
             gwtModemConfig.setConnectionType(modemInterfaceInfo.getConnectionType().toString());
@@ -293,37 +296,62 @@ public class NetworkStatusServiceAdapter {
             WifiInterfaceStatus wifiInterfaceInfo = (WifiInterfaceStatus) networkInterfaceInfo;
             gwtWifiNetInterfaceConfig.setHwState(wifiInterfaceInfo.getState().toString());
 
-            ChannelsBuilder channelsBuilder = new ChannelsBuilder();
-            Optional<WifiAccessPoint> activeAP = wifiInterfaceInfo.getActiveWifiAccessPoint();
-            if (activeAP.isPresent()) {
-                channelsBuilder.setActiveChannel(activeAP.get().getChannel());
-            }
-            channelsBuilder.addChannels(wifiInterfaceInfo.getChannels());
+            
 
             if (wifiInterfaceInfo.getMode() == WifiMode.MASTER) {
-                if (Objects.nonNull(gwtWifiNetInterfaceConfig.getAccessPointWifiConfig())) {
-                    gwtWifiNetInterfaceConfig.getAccessPointWifiConfig()
-                            .setChannels(channelsBuilder.getChannelsIntegers());
-                } else {
-                    GwtWifiConfig gwtConfig = gwtWifiNetInterfaceConfig.getActiveWifiConfig();
-                    gwtConfig.setChannels(channelsBuilder.getChannelsIntegers());
-                    gwtWifiNetInterfaceConfig.setAccessPointWifiConfig(gwtConfig);
-                }
+                setWifiMasterStateProperties(gwtWifiNetInterfaceConfig, wifiInterfaceInfo);
             } else if (wifiInterfaceInfo.getMode() == WifiMode.INFRA) {
-                AtomicReference<String> rssi = new AtomicReference<>("N/A");
-                wifiInterfaceInfo.getActiveWifiAccessPoint()
-                        .ifPresent(accessPoint -> rssi.set(String.valueOf(accessPoint.getSignalStrength())));
-                gwtWifiNetInterfaceConfig.setHwRssi(rssi.get());
-
-                if (Objects.nonNull(gwtWifiNetInterfaceConfig.getStationWifiConfig())) {
-                    gwtWifiNetInterfaceConfig.getStationWifiConfig().setChannels(channelsBuilder.getChannelsIntegers());
-                } else {
-                    GwtWifiConfig gwtConfig = gwtWifiNetInterfaceConfig.getActiveWifiConfig();
-                    gwtConfig.setChannels(channelsBuilder.getChannelsIntegers());
-                    gwtWifiNetInterfaceConfig.setStationWifiConfig(gwtConfig);
-                }
+                setWifiInfraStateProperties(gwtWifiNetInterfaceConfig, wifiInterfaceInfo);
             }
         }
+    }
+
+    private void setWifiMasterStateProperties(GwtWifiNetInterfaceConfig gwtWifiNetInterfaceConfig, WifiInterfaceStatus wifiInterfaceInfo) {
+        GwtWifiConfig gwtConfig;
+        if (Objects.nonNull(gwtWifiNetInterfaceConfig.getAccessPointWifiConfig())) {
+            gwtConfig = gwtWifiNetInterfaceConfig.getAccessPointWifiConfig();
+        } else {
+            gwtConfig = gwtWifiNetInterfaceConfig.getActiveWifiConfig();
+            gwtWifiNetInterfaceConfig.setAccessPointWifiConfig(gwtConfig);
+        }
+
+        ChannelsBuilder channelsBuilder = new ChannelsBuilder();
+        Optional<WifiAccessPoint> activeAP = wifiInterfaceInfo.getActiveWifiAccessPoint();
+        if (activeAP.isPresent()) {
+            channelsBuilder.setActiveChannel(activeAP.get().getChannel());
+        } else {
+            List<Integer> activeChannel = gwtConfig.getChannels();
+            if (activeChannel != null && activeChannel.size() == 1) {
+                channelsBuilder.setActiveChannel(activeChannel.get(0));
+            }
+        }
+        channelsBuilder.addChannels(wifiInterfaceInfo.getChannels());
+        gwtConfig.setChannels(channelsBuilder.getChannelsIntegers());
+    }
+
+    private void setWifiInfraStateProperties(GwtWifiNetInterfaceConfig gwtWifiNetInterfaceConfig, WifiInterfaceStatus wifiInterfaceInfo) {
+        AtomicReference<String> rssi = new AtomicReference<>("N/A");
+        wifiInterfaceInfo.getActiveWifiAccessPoint()
+                .ifPresent(accessPoint -> rssi.set(String.valueOf(accessPoint.getSignalStrength())));
+        gwtWifiNetInterfaceConfig.setHwRssi(rssi.get());
+
+        GwtWifiConfig gwtConfig;
+
+        if (Objects.nonNull(gwtWifiNetInterfaceConfig.getStationWifiConfig())) {
+            gwtConfig = gwtWifiNetInterfaceConfig.getStationWifiConfig();
+        } else {
+            gwtConfig = gwtWifiNetInterfaceConfig.getActiveWifiConfig();
+            gwtWifiNetInterfaceConfig.setStationWifiConfig(gwtConfig);
+        }
+
+        ChannelsBuilder channelsBuilder = new ChannelsBuilder();
+        List<Integer> activeChannel = gwtConfig.getChannels();
+        if (activeChannel != null && activeChannel.size() == 1) {
+            channelsBuilder.setActiveChannel(activeChannel.get(0));
+        }
+        channelsBuilder.addChannels(wifiInterfaceInfo.getChannels());
+
+        gwtConfig.setChannels(channelsBuilder.getChannelsIntegers());
     }
 
     private void parseAndSetWifiSecurity(GwtWifiHotspotEntry entryToModify, Set<WifiSecurity> supportedSecurity) {
@@ -371,6 +399,7 @@ public class NetworkStatusServiceAdapter {
     }
 
     private class ChannelsBuilder {
+
         List<WifiChannel> channels;
 
         public ChannelsBuilder() {
@@ -379,6 +408,11 @@ public class NetworkStatusServiceAdapter {
 
         public ChannelsBuilder setActiveChannel(WifiChannel channel) {
             this.channels.add(0, channel);
+            return this;
+        }
+
+        public ChannelsBuilder setActiveChannel(int channel) {
+            this.channels.add(0, WifiChannel.builder(channel, 0).build());
             return this;
         }
 

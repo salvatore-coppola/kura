@@ -27,6 +27,7 @@ import org.eclipse.kura.net.firewall.FirewallPortForwardConfigIP4;
 import org.eclipse.kura.net.status.NetworkInterfaceType;
 import org.eclipse.kura.web.server.net2.configuration.NetworkConfigurationServiceAdapter;
 import org.eclipse.kura.web.server.net2.status.NetworkStatusServiceAdapter;
+import org.eclipse.kura.web.server.util.GwtServerUtil;
 import org.eclipse.kura.web.server.util.ServiceLocator;
 import org.eclipse.kura.web.shared.GwtKuraErrorCode;
 import org.eclipse.kura.web.shared.GwtKuraException;
@@ -53,7 +54,10 @@ public class GwtNetworkServiceImpl {
     public static List<GwtNetInterfaceConfig> findNetInterfaceConfigurations(boolean recompute)
             throws GwtKuraException {
         try {
-            return getConfigsAndStatuses();
+            List<GwtNetInterfaceConfig> result = getConfigsAndStatuses();
+
+            return GwtServerUtil.replaceNetworkConfigListSensitivePasswordsWithPlaceholder(result);
+
         } catch (KuraException e) {
             throw new GwtKuraException(GwtKuraErrorCode.INTERNAL_ERROR, e);
         }
@@ -84,8 +88,6 @@ public class GwtNetworkServiceImpl {
                 }
             }
         }
-
-        logInterfaces("getConfigsAndStatuses", result);
 
         return result;
     }
@@ -256,41 +258,6 @@ public class GwtNetworkServiceImpl {
             return aps;
         } catch (KuraException e) {
             throw new GwtKuraException(GwtKuraErrorCode.INTERNAL_ERROR, e);
-        }
-    }
-
-    private static void logInterfaces(String origin, List<GwtNetInterfaceConfig> configs) {
-        if (logger.isDebugEnabled()) {
-            for (GwtNetInterfaceConfig config : configs) {
-                Map<String, Object> ifProperties = config.getProperties();
-
-                if (config instanceof GwtWifiNetInterfaceConfig) {
-                    GwtWifiNetInterfaceConfig wifi = (GwtWifiNetInterfaceConfig) config;
-                    
-                    switch (wifi.getWirelessModeEnum()) {
-                        case netWifiWirelessModeAccessPoint:
-                            ifProperties.putAll(wifi.getAccessPointWifiConfigProps());
-                            break;
-                        case netWifiWirelessModeAdHoc:
-                            ifProperties.putAll(wifi.getAdhocWifiConfigProps());
-                            break;
-                        case netWifiWirelessModeStation:
-                            ifProperties.putAll(wifi.getStationWifiConfigProps());
-                            break;
-                        case netWifiWirelessModeDisabled:
-                        default:
-                            break;
-                        
-                    }
-                }
-
-                if (config instanceof GwtModemInterfaceConfig) {
-                    GwtModemInterfaceConfig modem = (GwtModemInterfaceConfig) config;
-                    ifProperties.putAll(modem.getProperties());
-                }
-
-                logger.debug("{} returned for interface {}:\n\n{}\n\n", origin, config.getName(), ifProperties);
-            }
         }
     }
 
