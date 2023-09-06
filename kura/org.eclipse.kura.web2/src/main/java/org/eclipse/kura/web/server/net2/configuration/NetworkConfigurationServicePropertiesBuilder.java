@@ -31,6 +31,8 @@ import org.eclipse.kura.web.shared.model.GwtWifiNetInterfaceConfig;
 
 public class NetworkConfigurationServicePropertiesBuilder {
 
+    private static final Integer DEFAULT_WAN_PRIORITY = -1;
+
     private final GwtNetInterfaceConfig gwtConfig;
     private final NetworkConfigurationServiceProperties properties;
     private final String ifname;
@@ -49,6 +51,7 @@ public class NetworkConfigurationServicePropertiesBuilder {
     public Map<String, Object> build() throws GwtKuraException {
         setCommonProperties();
         setIpv4Properties();
+        setIpv6Properties();
         setIpv4DhcpClientProperties();
         setIpv4DhcpServerProperties();
 
@@ -87,8 +90,10 @@ public class NetworkConfigurationServicePropertiesBuilder {
         boolean isWan = this.gwtConfig.getStatus().equals(GwtNetIfStatus.netIPv4StatusEnabledWAN.name());
 
         if (isWan) {
-            if (!Objects.isNull(this.gwtConfig.getWanPriority())) {
+            if (Objects.nonNull(this.gwtConfig.getWanPriority())) {
                 this.properties.setIp4WanPriority(ifname, this.gwtConfig.getWanPriority());
+            } else {
+                this.properties.setIp4WanPriority(ifname, DEFAULT_WAN_PRIORITY);
             }
 
             this.properties.setIp4DnsServers(this.ifname, this.gwtConfig.getDnsServers());
@@ -101,6 +106,45 @@ public class NetworkConfigurationServicePropertiesBuilder {
 
         if (isManual && isWan) {
             this.properties.setIp4Gateway(this.ifname, this.gwtConfig.getGateway());
+        }
+    }
+
+    private void setIpv6Properties() {
+        this.properties.setIp6Status(this.ifname, this.gwtConfig.getIpv6Status());
+
+        if (this.gwtConfig.getIpv6Status().equals("netIPv6StatusDisabled")
+                || this.gwtConfig.getIpv6Status().equals("netIPv6StatusUnmanaged")) {
+            return;
+        }
+
+        this.properties.setIp6AddressMethod(this.ifname, this.gwtConfig.getIpv6ConfigMode());
+
+        boolean isManual = this.gwtConfig.getIpv6ConfigMode().equals("netIPv6MethodManual");
+        boolean isWan = this.gwtConfig.getIpv6Status().equals("netIPv6StatusEnabledWAN");
+        boolean isAuto = this.gwtConfig.getIpv6ConfigMode().equals("netIPv6MethodAuto");
+
+        if (isWan) {
+            if (Objects.nonNull(this.gwtConfig.getIpv6WanPriority())) {
+                this.properties.setIp6WanPriority(this.ifname, this.gwtConfig.getIpv6WanPriority());
+            } else {
+                this.properties.setIp6WanPriority(ifname, DEFAULT_WAN_PRIORITY);
+            }
+
+            this.properties.setIp6DnsServers(this.ifname, this.gwtConfig.getIpv6DnsServers());
+        }
+
+        if (isManual) {
+            this.properties.setIp6Address(this.ifname, this.gwtConfig.getIpv6Address());
+            this.properties.setIp6Netmask(this.ifname, this.gwtConfig.getIpv6SubnetMask());
+        }
+
+        if (isManual && isWan) {
+            this.properties.setIp6Gateway(this.ifname, this.gwtConfig.getIpv6Gateway());
+        }
+
+        if (isAuto) {
+            this.properties.setIp6AddressGenMode(this.ifname, this.gwtConfig.getIpv6AutoconfigurationMode());
+            this.properties.setIp6Privacy(this.ifname, this.gwtConfig.getIpv6Privacy());
         }
     }
 

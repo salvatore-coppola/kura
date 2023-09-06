@@ -25,6 +25,7 @@ import org.eclipse.kura.KuraException;
 import org.eclipse.kura.core.net.util.NetworkUtil;
 import org.eclipse.kura.core.util.NetUtil;
 import org.eclipse.kura.net.IP4Address;
+import org.eclipse.kura.net.IP6Address;
 import org.eclipse.kura.net.IPAddress;
 import org.eclipse.kura.net.status.NetworkInterfaceIpAddress;
 import org.eclipse.kura.net.status.NetworkInterfaceStatus;
@@ -58,6 +59,8 @@ import org.slf4j.LoggerFactory;
  */
 public class NetworkStatusServiceAdapter {
 
+    private final static String EMPTY_STRING = "";
+
     private final Logger logger = LoggerFactory.getLogger(NetworkStatusServiceAdapter.class);
     private final NetworkStatusService networkStatusService;
 
@@ -75,6 +78,7 @@ public class NetworkStatusServiceAdapter {
         if (networkInterfaceInfo.isPresent()) {
             setCommonStateProperties(gwtConfigToUpdate, networkInterfaceInfo.get());
             setIpv4DhcpClientProperties(gwtConfigToUpdate, networkInterfaceInfo.get());
+            setIpv6StatusProperties(gwtConfigToUpdate, networkInterfaceInfo.get());
             setWifiStateProperties(gwtConfigToUpdate, networkInterfaceInfo.get());
             setModemStateProperties(gwtConfigToUpdate, networkInterfaceInfo.get());
         }
@@ -144,10 +148,11 @@ public class NetworkStatusServiceAdapter {
         return "";
     }
 
-    public List<GwtWifiHotspotEntry> findWifiHotspots(String interfaceName) throws KuraException {
+    public List<GwtWifiHotspotEntry> findWifiHotspots(String interfaceName, boolean recompute) throws KuraException {
         List<GwtWifiHotspotEntry> result = new ArrayList<>();
 
-        Optional<NetworkInterfaceStatus> ifStatus = this.networkStatusService.getNetworkStatus(interfaceName);
+        Optional<NetworkInterfaceStatus> ifStatus = this.networkStatusService.getNetworkStatus(interfaceName,
+                recompute);
 
         if (ifStatus.isPresent() && ifStatus.get() instanceof WifiInterfaceStatus) {
             WifiInterfaceStatus wifiStatus = (WifiInterfaceStatus) ifStatus.get();
@@ -207,9 +212,11 @@ public class NetworkStatusServiceAdapter {
                     gwtConfig.setIpAddress(firstAddress.getAddress().getHostAddress());
                     gwtConfig.setSubnetMask(NetworkUtil.getNetmaskStringForm(firstAddress.getPrefix()));
                 }
-                if (address.getGateway().isPresent()) {
-                    gwtConfig.setGateway(address.getGateway().get().getHostAddress());
-                }
+
+                String gatewayAddress = address.getGateway().isPresent() ? address.getGateway().get().getHostAddress()
+                        : EMPTY_STRING;
+                gwtConfig.setGateway(gatewayAddress);
+
                 gwtConfig.setReadOnlyDnsServers(prettyPrintDnsServers(address.getDnsServerAddresses()));
             });
         }
@@ -217,6 +224,35 @@ public class NetworkStatusServiceAdapter {
 
     private boolean isDhcpClient(String ipConfigMode) {
         return ipConfigMode != null && ipConfigMode.equals(GwtNetIfConfigMode.netIPv4ConfigModeDHCP.name());
+    }
+
+    private void setIpv6StatusProperties(GwtNetInterfaceConfig gwtConfig, NetworkInterfaceStatus networkInterfaceInfo) {
+
+        String ipConfigMode = gwtConfig.getIpv6ConfigMode();
+        if (isIpv6AutoConfig(ipConfigMode)) {
+            /*
+             * An interface can have multiple active addresses, we select just the first
+             * one. This is a limit of the current GWT UI.
+             */
+            networkInterfaceInfo.getInterfaceIp6Addresses().ifPresent(address -> {
+                if (!address.getAddresses().isEmpty()) {
+                    NetworkInterfaceIpAddress<IP6Address> firstAddress = address.getAddresses().get(0);
+                    gwtConfig.setIpv6Address(firstAddress.getAddress().getHostAddress());
+                    gwtConfig.setIpv6SubnetMask((int) firstAddress.getPrefix());
+                }
+
+                String gatewayAddress = address.getGateway().isPresent() ? address.getGateway().get().getHostAddress()
+                        : EMPTY_STRING;
+                gwtConfig.setIpv6Gateway(gatewayAddress);
+
+                gwtConfig.setIpv6ReadOnlyDnsServers(prettyPrintDnsServers(address.getDnsServerAddresses()));
+            });
+        }
+    }
+
+    private boolean isIpv6AutoConfig(String ipConfigMode) {
+        return ipConfigMode != null
+                && (ipConfigMode.equals("netIPv6MethodAuto") || ipConfigMode.equals("netIPv6MethodDhcp"));
     }
 
     private <T extends IPAddress> String prettyPrintDnsServers(List<T> dnsAddresses) {
@@ -296,8 +332,6 @@ public class NetworkStatusServiceAdapter {
             WifiInterfaceStatus wifiInterfaceInfo = (WifiInterfaceStatus) networkInterfaceInfo;
             gwtWifiNetInterfaceConfig.setHwState(wifiInterfaceInfo.getState().toString());
 
-            
-
             if (wifiInterfaceInfo.getMode() == WifiMode.MASTER) {
                 setWifiMasterStateProperties(gwtWifiNetInterfaceConfig, wifiInterfaceInfo);
             } else if (wifiInterfaceInfo.getMode() == WifiMode.INFRA) {
@@ -306,7 +340,8 @@ public class NetworkStatusServiceAdapter {
         }
     }
 
-    private void setWifiMasterStateProperties(GwtWifiNetInterfaceConfig gwtWifiNetInterfaceConfig, WifiInterfaceStatus wifiInterfaceInfo) {
+    private void setWifiMasterStateProperties(GwtWifiNetInterfaceConfig gwtWifiNetInterfaceConfig,
+            WifiInterfaceStatus wifiInterfaceInfo) {
         GwtWifiConfig gwtConfig;
         if (Objects.nonNull(gwtWifiNetInterfaceConfig.getAccessPointWifiConfig())) {
             gwtConfig = gwtWifiNetInterfaceConfig.getAccessPointWifiConfig();
@@ -329,7 +364,8 @@ public class NetworkStatusServiceAdapter {
         gwtConfig.setChannels(channelsBuilder.getChannelsIntegers());
     }
 
-    private void setWifiInfraStateProperties(GwtWifiNetInterfaceConfig gwtWifiNetInterfaceConfig, WifiInterfaceStatus wifiInterfaceInfo) {
+    private void setWifiInfraStateProperties(GwtWifiNetInterfaceConfig gwtWifiNetInterfaceConfig,
+            WifiInterfaceStatus wifiInterfaceInfo) {
         AtomicReference<String> rssi = new AtomicReference<>("N/A");
         wifiInterfaceInfo.getActiveWifiAccessPoint()
                 .ifPresent(accessPoint -> rssi.set(String.valueOf(accessPoint.getSignalStrength())));

@@ -108,6 +108,10 @@
         <module>org.eclipse.kura.core.tamper.detection</module>
         <module>org.eclipse.kura.log.filesystem.provider</module>
         <module>org.eclipse.kura.rest.configuration.provider</module>
+        <module>org.eclipse.kura.rest.inventory.provider</module>
+        <module>org.eclipse.kura.rest.command.provider</module>
+        <module>org.eclipse.kura.rest.position.provider</module>
+        <module>org.eclipse.kura.rest.system.provider</module>
         <module>org.eclipse.kura.request.handler.jaxrs</module>
         <module>org.eclipse.kura.rest.wire.provider</module>
         <module>org.eclipse.kura.container.orchestration.provider</module>
@@ -126,7 +130,7 @@
     <properties>
         <!-- SCM: Note that we are in the "kura" sub-dir here already -->
         <tycho.scmUrl>scm:git:ssh://github.com/eclipse/kura/kura</tycho.scmUrl>
-
+        <tycho-version>1.7.0</tycho-version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.build.timestamp.format>yyyyMMddHHmm</maven.build.timestamp.format>

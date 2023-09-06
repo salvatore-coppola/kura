@@ -18,25 +18,25 @@ Eclipse Kura™
 ![Jenkins](https://img.shields.io/jenkins/build?jobUrl=https:%2F%2Fci.eclipse.org%2Fkura%2Fjob%2Fmultibranch%2Fjob%2Fdevelop&label=Jenkins%20Build&logo=jenkins)
 ![Jenkins](https://img.shields.io/jenkins/tests?compact_message&failed_label=%E2%9D%8C&jobUrl=https:%2F%2Fci.eclipse.org%2Fkura%2Fjob%2Fmultibranch%2Fjob%2Fdevelop%2F&label=Jenkins%20CI&passed_label=%E2%9C%85&skipped_label=%E2%9D%95&logo=jenkins) <br/>
   
-[![Gitter](https://badges.gitter.im/eclipse/kura.svg)](https://gitter.im/eclipse/kura?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
-  
 </div>
 
-An OSGi-based Application Framework for M2M Service Gateways
+**Eclipse Kura**, from [the maori word for tank/container](https://maoridictionary.co.nz/search/?keywords=kura), is an OSGi-based Application Framework for M2M Service Gateways
 
-Background
-----------
-Until recently, machine-to-machine projects have been approached as embedded systems designed around custom hardware, custom software, and custom network connectivity. The challenge of developing such projects was given by the large customization and integration costs and the small re-usability across similar engagements. The results were often proprietary systems leveraging proprietary protocols.
-
-The emergence of the service gateway model, which operates on the edge of an M2M deployment as an aggregator and controller, has opened up new possibilities. Cost effective service gateways are now capable of running modern software stacks opening the world of M2M to enterprise technologies and programming languages. Advanced software frameworks, which isolate the developer from the complexity of the hardware and the networking sub-systems, can now be offered to complement the service gateway hardware into an integrated hardware and software solution.
-
-
-Description
------------
 Kura aims at offering a Java/OSGi-based container for M2M applications running in service gateways. Kura provides or, when available, aggregates open source implementations for the most common services needed by M2M applications. Kura components are designed as configurable OSGi Declarative Service exposing service API and raising events. While several Kura components are in pure Java, others are invoked through JNI and have a dependency on the Linux operating system.
 
 For more information, see the [Eclipse project proposal](http://www.eclipse.org/proposals/technology.kura/).
 
+Documentation
+-------------------
+
+- [**User Documentation**](https://eclipse.github.io/kura/latest/): here you'll find information on how to **use** Eclipse Kura i.e. installation instructions, informations on how to use the web UI and tutorials.
+- [**Developer Documentation**](https://github.com/eclipse/kura/wiki): the Eclipse Kura Github Wiki serves as a reference for **developers** who want to contribute to the Eclipse Kura project and/or develop new add-ons. Here you'll find Eclipse Kura development/release model, guidelines on how to import internal packages, creating new bundles and development environment tips & tricks.
+- [**Docker Containers Documentation**](https://hub.docker.com/r/eclipse/kura/): the Eclipse Kura team also provides Docker containers for the project. Informations on how to build and run them are available at the project's Docker Hub page.
+- [**Developer Quickstart Guide**](https://github.com/eclipse/kura#getting-started): a quick guide on how to setup the development environment and build the project is also provided in this README.
+
+Additionally, we provide two channels for reporting any issue you find with the project
+- [**Github Issues**](https://github.com/eclipse/kura/issues): for bug reporting.
+- [**Github Discussions**](https://github.com/eclipse/kura/discussions): for receiving feedback, making new proposals and generally talking about the project.
 
 System Requirements
 -------------------
@@ -165,22 +165,22 @@ mvn -f kura/distrib/pom.xml clean install -DbuildAllContainers
 After this command runs, images can be found in your preferred container engine image list.
 
 ### Eclipse IDE
-The simplest way to start developing on Eclipse Kura is to use an [Eclipse Installer](https://www.eclipse.org/downloads/) based setup. A detailed installation and setup guide is available on the [official documentation](http://eclipse.github.io/kura/dev/kura-setup.html). Here you'll find a brief explaination of the required steps.
+The simplest way to start developing on Eclipse Kura is to use an [Eclipse Installer](https://www.eclipse.org/downloads/) based setup. A detailed installation and setup guide is available on the [official documentation](https://eclipse.github.io/kura/docs-develop/java-application-development/development-environment-setup). Here you'll find a brief explaination of the required steps.
 
 To correctly setup the environment, proceed as follows:
 - Install a jdk-8 distribution like [Eclipse Temurin](https://adoptium.net/temurin/releases/?version=8) for your specific CPU architecture and OS.
 - Start the Eclipse Installer
 - Switch to advanced mode (top right hamburger menu > Advanced Mode)
-- Select "Eclipse IDE for Eclipse Committers" and configure the "Product Version" to be the version **2022-06 or older**.
-- Set the Java 1.8+ VM to the installed local jdk-8 VM, and press the Next button
+- Select "Eclipse IDE for Eclipse Committers" and configure the "Product Version" to be the version **2023-03 or newer**.
 - Select the Eclipse Kura installer from the list. If this is not available, add a new installer from https://raw.githubusercontent.com/eclipse/kura/develop/kura/setups/kura.setup, then check and press the Next button
 - Select the "Developer Type":
   - "User": if you want to develop applications or bundles running on Kura, select this option. It will install only the APIs and the examples.
   - "Developer" : if you are a framework developer, select this option. It will download and configure the Eclipse Kura framework.
 - Update Eclipse Kura Git repository username and customize further settings if you like (e.g. Root install folder, Installation folder name). To show these options, make sure that the "Show all variables" checkbox is enabled
+- Set the `JRE 1.8 location` value to the installed local jdk-8 VM
 - Leave all Bootstrap Tasks selected and press the Finish button
 - Accept all the licenses and wait for the installation to finish
-At first startup Eclipse IDE will checkout the code, perform a full build and configure a few Working Sets. 
+At first startup Eclipse IDE will checkout the code, perform a full build and configure a few Working Sets
 - When the tasks are completed. In the IDE open (double click) Target Platform > Target-Definition > Kura Target Platform Equinox 3.16.0, and press "Set as Target Platform" located at the top right of the window
 
 Now you are ready to develop on Eclipse Kura.

@@ -23,9 +23,17 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.eclipse.kura.configuration.Password;
+import org.eclipse.kura.nm.Kura8021xEAP;
+import org.eclipse.kura.nm.Kura8021xInnerAuth;
+import org.eclipse.kura.nm.KuraIp6AddressGenerationMode;
+import org.eclipse.kura.nm.KuraIp6ConfigurationMethod;
+import org.eclipse.kura.nm.KuraIp6Privacy;
 import org.eclipse.kura.nm.KuraIpStatus;
-import org.eclipse.kura.nm.NMDeviceType;
+import org.eclipse.kura.nm.KuraWifiSecurityType;
 import org.eclipse.kura.nm.NetworkProperties;
+import org.eclipse.kura.nm.enums.NM8021xEAP;
+import org.eclipse.kura.nm.enums.NM8021xPhase2Auth;
+import org.eclipse.kura.nm.enums.NMDeviceType;
 import org.freedesktop.dbus.types.UInt32;
 import org.freedesktop.dbus.types.Variant;
 import org.freedesktop.networkmanager.settings.Connection;
@@ -37,14 +45,22 @@ public class NMSettingsConverter {
     private static final Logger logger = LoggerFactory.getLogger(NMSettingsConverter.class);
 
     private static final String NM_SETTINGS_CONNECTION = "connection";
+    private static final String NM_SETTINGS_80211_KEY_MANAGEMENT = "key-mgmt";
     private static final String NM_SETTINGS_IPV4_METHOD = "method";
     private static final String NM_SETTINGS_IPV6_METHOD = "method";
+    private static final String NM_SETTINGS_IPV4_IGNORE_AUTO_DNS = "ignore-auto-dns";
+    private static final String NM_SETTINGS_IPV6_IGNORE_AUTO_DNS = "ignore-auto-dns";
 
     private static final String PPP_REFUSE_EAP = "refuse-eap";
     private static final String PPP_REFUSE_CHAP = "refuse-chap";
     private static final String PPP_REFUSE_PAP = "refuse-pap";
     private static final String PPP_REFUSE_MSCHAP = "refuse-mschap";
     private static final String PPP_REFUSE_MSCHAPV2 = "refuse-mschapv2";
+
+    private static final int NM_WEP_KEY_TYPE_KEY = 1;
+
+    private static final String KURA_PROPS_KEY_WIFI_MODE = "net.interface.%s.config.wifi.mode";
+    private static final String KURA_PROPS_KEY_WIFI_SECURITY_TYPE = "net.interface.%s.config.wifi.%s.securityType";
 
     private NMSettingsConverter() {
         throw new IllegalStateException("Utility class");
@@ -65,10 +81,23 @@ public class NMSettingsConverter {
         if (deviceType == NMDeviceType.NM_DEVICE_TYPE_WIFI) {
             Map<String, Variant<?>> wifiSettingsMap = NMSettingsConverter.build80211WirelessSettings(properties,
                     deviceId);
-            Map<String, Variant<?>> wifiSecuritySettingsMap = NMSettingsConverter
-                    .build80211WirelessSecuritySettings(properties, deviceId);
             newConnectionSettings.put("802-11-wireless", wifiSettingsMap);
-            newConnectionSettings.put("802-11-wireless-security", wifiSecuritySettingsMap);
+
+            String propMode = properties.get(String.class, KURA_PROPS_KEY_WIFI_MODE, deviceId);
+            KuraWifiSecurityType securityType = KuraWifiSecurityType.fromString(
+                    properties.get(String.class, KURA_PROPS_KEY_WIFI_SECURITY_TYPE, deviceId, propMode.toLowerCase()));
+
+            if (securityType != KuraWifiSecurityType.SECURITY_NONE) {
+                // Only populate "802-11-wireless-security" field if security is enabled
+                Map<String, Variant<?>> wifiSecuritySettingsMap = NMSettingsConverter
+                        .build80211WirelessSecuritySettings(properties, deviceId);
+                newConnectionSettings.put("802-11-wireless-security", wifiSecuritySettingsMap);
+
+                if (securityType == KuraWifiSecurityType.SECURITY_WPA2_WPA3_ENTERPRISE) {
+                    newConnectionSettings.put("802-1x", NMSettingsConverter.build8021xSettings(properties, deviceId));
+                }
+
+            }
         } else if (deviceType == NMDeviceType.NM_DEVICE_TYPE_MODEM) {
             Map<String, Variant<?>> gsmSettingsMap = NMSettingsConverter.buildGsmSettings(properties, deviceId);
             Map<String, Variant<?>> pppSettingsMap = NMSettingsConverter.buildPPPSettings(properties, deviceId);
@@ -79,13 +108,124 @@ public class NMSettingsConverter {
         return newConnectionSettings;
     }
 
-    public static Map<String, Variant<?>> buildIpv4Settings(NetworkProperties props, String deviceId) {
+    public static Map<String, Variant<?>> build8021xSettings(NetworkProperties props, String deviceId) {
+
+        String eap = props.get(String.class, "net.interface.%s.config.802-1x.eap", deviceId);
+        Optional<String> phase2 = props.getOpt(String.class, "net.interface.%s.config.802-1x.innerAuth", deviceId);
+
         Map<String, Variant<?>> settings = new HashMap<>();
 
-        Boolean dhcpClient4Enabled = props.get(Boolean.class, "net.interface.%s.config.dhcpClient4.enabled", deviceId);
+        switch (Kura8021xEAP.fromString(eap)) {
+        case KURA_8021X_EAP_TTLS:
+            create8021xTunneledTls(props, deviceId, settings);
+            break;
+        case KURA_8021X_EAP_PEAP:
+            create8021xProtectedEap(props, deviceId, settings);
+            break;
+        case KURA_8021X_EAP_TLS:
+            create8021xTls(props, deviceId, settings);
+            break;
+        default:
+            throw new IllegalArgumentException(String.format("Security type 802-1x EAP \"%s\" is not supported.", eap));
+        }
 
+        if (!phase2.isPresent()) {
+            return settings;
+        }
+
+        switch (Kura8021xInnerAuth.fromString(phase2.get())) {
+        case KURA_8021X_INNER_AUTH_NONE:
+            break;
+        case KURA_8021X_INNER_AUTH_MSCHAPV2:
+            create8021xMschapV2(props, deviceId, settings);
+            break;
+        default:
+            throw new IllegalArgumentException(
+                    String.format("Security type 802-1x InnerAuth (Phase2) \"%s\" is not supported.", phase2));
+        }
+
+        return settings;
+    }
+
+    private static void create8021xTunneledTls(NetworkProperties props, String deviceId,
+            Map<String, Variant<?>> settings) {
+        settings.put("eap", new Variant<>(new String[] { NM8021xEAP.TTLS.getValue() }));
+        create8021xOptionalCaCertAndAnonIdentity(props, deviceId, settings);
+    }
+
+    private static void create8021xProtectedEap(NetworkProperties props, String deviceId,
+            Map<String, Variant<?>> settings) {
+        settings.put("eap", new Variant<>(new String[] { NM8021xEAP.PEAP.getValue() }));
+        create8021xOptionalCaCertAndAnonIdentity(props, deviceId, settings);
+    }
+
+    private static void create8021xTls(NetworkProperties props, String deviceId, Map<String, Variant<?>> settings) {
+        settings.put("eap", new Variant<>(new String[] { NM8021xEAP.TLS.getValue() }));
+        create8021xOptionalCaCertAndAnonIdentity(props, deviceId, settings);
+
+        String identity = props.get(String.class, "net.interface.%s.config.802-1x.identity", deviceId);
+        settings.put("identity", new Variant<>(identity));
+
+        String clientCert = props.get(String.class, "net.interface.%s.config.802-1x.client-cert", deviceId);
+        settings.put("client-cert", new Variant<>(clientCert.getBytes(StandardCharsets.UTF_8)));
+
+        String privateKey = props.get(String.class, "net.interface.%s.config.802-1x.private-key", deviceId);
+        settings.put("private-key", new Variant<>(privateKey.getBytes(StandardCharsets.UTF_8)));
+
+        String privateKeyPassword = props
+                .get(Password.class, "net.interface.%s.config.802-1x.private-key-password", deviceId).toString();
+        settings.put("private-key-password", new Variant<>(privateKeyPassword));
+
+    }
+
+    private static void create8021xOptionalCaCertAndAnonIdentity(NetworkProperties props, String deviceId,
+            Map<String, Variant<?>> settings) {
+        Optional<String> anonymousIdentity = props.getOpt(String.class,
+                "net.interface.%s.config.802-1x.anonymous-identity", deviceId);
+        if (anonymousIdentity.isPresent()) {
+            settings.put("anonymous-identity", new Variant<>(anonymousIdentity.get()));
+        }
+
+        Optional<String> caCert = props.getOpt(String.class, "net.interface.%s.config.802-1x.ca-cert", deviceId);
+        if (caCert.isPresent()) {
+            settings.put("ca-cert", new Variant<>(caCert.get().getBytes(StandardCharsets.UTF_8)));
+        }
+
+        Optional<Password> caCertPassword = props.getOpt(Password.class,
+                "net.interface.%s.config.802-1x.ca-cert-password", deviceId);
+        if (caCertPassword.isPresent()) {
+            settings.put("ca-cert-password", new Variant<>(caCertPassword.get().toString()));
+        }
+    }
+
+    private static void create8021xMschapV2(NetworkProperties props, String deviceId,
+            Map<String, Variant<?>> settings) {
+        settings.put("phase2-auth", new Variant<>(NM8021xPhase2Auth.MSCHAPV2.getValue()));
+
+        String identity = props.get(String.class, "net.interface.%s.config.802-1x.identity", deviceId);
+        settings.put("identity", new Variant<>(identity));
+
+        String password = props.get(Password.class, "net.interface.%s.config.802-1x.password", deviceId).toString();
+        settings.put("password", new Variant<>(password));
+
+    }
+
+    public static Map<String, Variant<?>> buildIpv4Settings(NetworkProperties props, String deviceId) {
         KuraIpStatus ip4Status = KuraIpStatus
                 .fromString(props.get(String.class, "net.interface.%s.config.ip4.status", deviceId));
+
+        if (ip4Status == KuraIpStatus.UNMANAGED || ip4Status == KuraIpStatus.UNKNOWN) {
+            throw new IllegalArgumentException("IPv4 status is not supported: " + ip4Status
+                    + ". Build settings should be called only for managed interfaces.");
+        }
+
+        Map<String, Variant<?>> settings = new HashMap<>();
+        if (ip4Status == KuraIpStatus.DISABLED) {
+            settings.put(NM_SETTINGS_IPV4_METHOD, new Variant<>("disabled"));
+            return settings;
+        }
+
+        Boolean dhcpClient4Enabled = props.get(Boolean.class, "net.interface.%s.config.dhcpClient4.enabled", deviceId);
 
         if (Boolean.FALSE.equals(dhcpClient4Enabled)) {
             settings.put(NM_SETTINGS_IPV4_METHOD, new Variant<>("manual"));
@@ -109,14 +249,14 @@ public class NMSettingsConverter {
         }
 
         if (ip4Status.equals(KuraIpStatus.ENABLEDLAN)) {
-            settings.put("ignore-auto-dns", new Variant<>(true));
+            settings.put(NM_SETTINGS_IPV4_IGNORE_AUTO_DNS, new Variant<>(true));
             settings.put("ignore-auto-routes", new Variant<>(true));
         } else if (ip4Status.equals(KuraIpStatus.ENABLEDWAN)) {
             Optional<List<String>> dnsServers = props.getOptStringList("net.interface.%s.config.ip4.dnsServers",
                     deviceId);
             if (dnsServers.isPresent()) {
                 settings.put("dns", new Variant<>(convertIp4(dnsServers.get()), "au"));
-                settings.put("ignore-auto-dns", new Variant<>(true));
+                settings.put(NM_SETTINGS_IPV4_IGNORE_AUTO_DNS, new Variant<>(true));
             }
 
             Optional<Integer> wanPriority = props.getOpt(Integer.class, "net.interface.%s.config.ip4.wan.priority",
@@ -133,10 +273,101 @@ public class NMSettingsConverter {
     }
 
     public static Map<String, Variant<?>> buildIpv6Settings(NetworkProperties props, String deviceId) {
+
+        // buildIpv6Settings doesn't support Unmanaged status. Therefore if ip6.status
+        // property is not set, it assumes
+        // it is disabled.
+
+        Optional<KuraIpStatus> ip6OptStatus = KuraIpStatus
+                .fromString(props.getOpt(String.class, "net.interface.%s.config.ip6.status", deviceId));
+
+        KuraIpStatus ip6Status = ip6OptStatus.isPresent() ? ip6OptStatus.get() : KuraIpStatus.DISABLED;
+
+        if (ip6Status == KuraIpStatus.UNMANAGED || ip6Status == KuraIpStatus.UNKNOWN) {
+            throw new IllegalArgumentException("IPv6 status is not supported: " + ip6Status
+                    + ". Build settings should be called only for managed interfaces.");
+        }
+
         Map<String, Variant<?>> settings = new HashMap<>();
 
-        // Disabled for now
-        settings.put(NM_SETTINGS_IPV6_METHOD, new Variant<>("disabled"));
+        if (ip6Status == KuraIpStatus.DISABLED) {
+            settings.put(NM_SETTINGS_IPV6_METHOD, new Variant<>("disabled"));
+            return settings;
+        }
+
+        KuraIp6ConfigurationMethod ip6ConfigMethod = KuraIp6ConfigurationMethod
+                .fromString(props.get(String.class, "net.interface.%s.config.ip6.address.method", deviceId));
+
+        if (ip6ConfigMethod.equals(KuraIp6ConfigurationMethod.AUTO)) {
+
+            settings.put(NM_SETTINGS_IPV6_METHOD, new Variant<>("auto"));
+
+            Optional<String> addressGenerationMode = props.getOpt(String.class,
+                    "net.interface.%s.config.ip6.addr.gen.mode", deviceId);
+
+            addressGenerationMode.ifPresent(value -> {
+                KuraIp6AddressGenerationMode ipv6AddressGenerationMode = KuraIp6AddressGenerationMode
+                        .fromString(addressGenerationMode.get());
+                settings.put("addr-gen-mode", new Variant<>(KuraIp6AddressGenerationMode
+                        .toNMSettingIP6ConfigAddrGenMode(ipv6AddressGenerationMode).toInt32()));
+            });
+
+            Optional<String> privacy = props.getOpt(String.class, "net.interface.%s.config.ip6.privacy", deviceId);
+            privacy.ifPresent(value -> {
+                KuraIp6Privacy ip6Privacy = KuraIp6Privacy.fromString(privacy.get());
+                settings.put("ip6-privacy",
+                        new Variant<>(KuraIp6Privacy.toNMSettingIP6ConfigPrivacy(ip6Privacy).toInt32()));
+            });
+
+        } else if (ip6ConfigMethod.equals(KuraIp6ConfigurationMethod.DHCP)) {
+
+            settings.put(NM_SETTINGS_IPV6_METHOD, new Variant<>("dhcp"));
+
+        } else if (ip6ConfigMethod.equals(KuraIp6ConfigurationMethod.MANUAL)) {
+
+            settings.put(NM_SETTINGS_IPV6_METHOD, new Variant<>("manual"));
+
+            String address = props.get(String.class, "net.interface.%s.config.ip6.address", deviceId);
+            Short prefix = props.get(Short.class, "net.interface.%s.config.ip6.prefix", deviceId);
+
+            Map<String, Variant<?>> addressEntry = new HashMap<>();
+            addressEntry.put("address", new Variant<>(address));
+            addressEntry.put("prefix", new Variant<>(new UInt32(prefix)));
+
+            if (ip6Status.equals(KuraIpStatus.ENABLEDWAN)) {
+                Optional<String> gateway = props.getOpt(String.class, "net.interface.%s.config.ip6.gateway", deviceId);
+                gateway.ifPresent(gatewayAddress -> settings.put("gateway", new Variant<>(gatewayAddress)));
+            }
+
+            List<Map<String, Variant<?>>> addressData = Arrays.asList(addressEntry);
+            settings.put("address-data", new Variant<>(addressData, "aa{sv}"));
+
+        } else {
+            throw new IllegalArgumentException(
+                    String.format("Unsupported IPv6 address generation mode: \"%s\"", ip6ConfigMethod));
+        }
+
+        if (ip6Status.equals(KuraIpStatus.ENABLEDLAN)) {
+            settings.put(NM_SETTINGS_IPV6_IGNORE_AUTO_DNS, new Variant<>(true));
+            settings.put("ignore-auto-routes", new Variant<>(true));
+
+        } else if (ip6Status.equals(KuraIpStatus.ENABLEDWAN)) {
+            Optional<List<String>> dnsServers = props.getOptStringList("net.interface.%s.config.ip6.dnsServers",
+                    deviceId);
+
+            dnsServers.ifPresent(value -> {
+                settings.put("dns", new Variant<>(convertIp6(value), "aay"));
+                settings.put(NM_SETTINGS_IPV6_IGNORE_AUTO_DNS, new Variant<>(true));
+            });
+
+            Optional<Integer> wanPriority = props.getOpt(Integer.class, "net.interface.%s.config.ip6.wan.priority",
+                    deviceId);
+
+            wanPriority.ifPresent(value -> settings.put("route-metric", new Variant<>(value.longValue())));
+
+        } else {
+            logger.warn("Unexpected ip status received: \"{}\". Ignoring", ip6Status);
+        }
 
         return settings;
     }
@@ -144,7 +375,7 @@ public class NMSettingsConverter {
     public static Map<String, Variant<?>> build80211WirelessSettings(NetworkProperties props, String deviceId) {
         Map<String, Variant<?>> settings = new HashMap<>();
 
-        String propMode = props.get(String.class, "net.interface.%s.config.wifi.mode", deviceId);
+        String propMode = props.get(String.class, KURA_PROPS_KEY_WIFI_MODE, deviceId);
 
         String mode = wifiModeConvert(propMode);
         settings.put("mode", new Variant<>(mode));
@@ -169,23 +400,54 @@ public class NMSettingsConverter {
     }
 
     public static Map<String, Variant<?>> build80211WirelessSecuritySettings(NetworkProperties props, String deviceId) {
+        String propMode = props.get(String.class, KURA_PROPS_KEY_WIFI_MODE, deviceId);
+        KuraWifiSecurityType securityType = KuraWifiSecurityType.fromString(
+                props.get(String.class, KURA_PROPS_KEY_WIFI_SECURITY_TYPE, deviceId, propMode.toLowerCase()));
+
+        switch (securityType) {
+        case SECURITY_WEP:
+            return createWEPSettings(props, deviceId, propMode);
+        case SECURITY_WPA:
+        case SECURITY_WPA2:
+        case SECURITY_WPA_WPA2:
+            return createWPAWPA2Settings(props, deviceId, propMode);
+        case SECURITY_WPA2_WPA3_ENTERPRISE:
+            return createWPA2WPA3EnterpriseSettings();
+        default:
+            throw new IllegalArgumentException(String.format("Security type \"%s\" is not supported.", securityType));
+        }
+    }
+
+    private static Map<String, Variant<?>> createWEPSettings(NetworkProperties props, String deviceId,
+            String propMode) {
         Map<String, Variant<?>> settings = new HashMap<>();
 
-        String propMode = props.get(String.class, "net.interface.%s.config.wifi.mode", deviceId);
+        settings.put(NM_SETTINGS_80211_KEY_MANAGEMENT, new Variant<>("none"));
+        settings.put("wep-key-type", new Variant<>(NM_WEP_KEY_TYPE_KEY));
+
+        String wepKey = props
+                .get(Password.class, "net.interface.%s.config.wifi.%s.passphrase", deviceId, propMode.toLowerCase())
+                .toString();
+        settings.put("wep-key0", new Variant<>(wepKey));
+
+        return settings;
+    }
+
+    private static Map<String, Variant<?>> createWPAWPA2Settings(NetworkProperties props, String deviceId,
+            String propMode) {
+        Map<String, Variant<?>> settings = new HashMap<>();
+
+        settings.put(NM_SETTINGS_80211_KEY_MANAGEMENT, new Variant<>("wpa-psk"));
 
         String psk = props
                 .get(Password.class, "net.interface.%s.config.wifi.%s.passphrase", deviceId, propMode.toLowerCase())
                 .toString();
-        String keyMgmt = wifiKeyMgmtConvert(props.get(String.class, "net.interface.%s.config.wifi.%s.securityType",
-                deviceId, propMode.toLowerCase()));
         settings.put("psk", new Variant<>(psk));
-        settings.put("key-mgmt", new Variant<>(keyMgmt));
 
-        if ("wpa-psk".equals(keyMgmt)) {
-            List<String> proto = wifiProtoConvert(props.get(String.class,
-                    "net.interface.%s.config.wifi.%s.securityType", deviceId, propMode.toLowerCase()));
-            settings.put("proto", new Variant<>(proto, "as"));
-        }
+        KuraWifiSecurityType securityType = KuraWifiSecurityType.fromString(
+                props.get(String.class, KURA_PROPS_KEY_WIFI_SECURITY_TYPE, deviceId, propMode.toLowerCase()));
+        List<String> proto = wifiProtoConvert(securityType);
+        settings.put("proto", new Variant<>(proto, "as"));
 
         Optional<String> group = props.getOpt(String.class, "net.interface.%s.config.wifi.%s.groupCiphers", deviceId,
                 propMode.toLowerCase());
@@ -200,6 +462,14 @@ public class NMSettingsConverter {
             List<String> nmPairwise = wifiCipherConvert(pairwise.get());
             settings.put("pairwise", new Variant<>(nmPairwise, "as"));
         }
+
+        return settings;
+    }
+
+    private static Map<String, Variant<?>> createWPA2WPA3EnterpriseSettings() {
+        Map<String, Variant<?>> settings = new HashMap<>();
+
+        settings.put(NM_SETTINGS_80211_KEY_MANAGEMENT, new Variant<>("wpa-eap"));
 
         return settings;
     }
@@ -324,6 +594,31 @@ public class NMSettingsConverter {
         return new UInt32(result);
     }
 
+    private static List<List<Byte>> convertIp6(List<String> ipAddrList) {
+        List<List<Byte>> uint32Addresses = new ArrayList<>();
+        for (String address : ipAddrList) {
+            try {
+                uint32Addresses.add(convertIp6(address));
+            } catch (UnknownHostException e) {
+                logger.warn("Cannot convert ip address \"{}\" because: ", address, e);
+            }
+        }
+        return uint32Addresses;
+    }
+
+    private static List<Byte> convertIp6(String ipAddrString) throws UnknownHostException {
+        InetAddress address = InetAddress.getByName(ipAddrString);
+
+        byte[] dnsByteArray = address.getAddress();
+
+        List<Byte> dnsAddress = new ArrayList<>();
+        for (int i = 0; i < dnsByteArray.length; i++) {
+            dnsAddress.add(dnsByteArray[i]);
+        }
+
+        return dnsAddress;
+    }
+
     private static String wifiModeConvert(String kuraMode) {
         switch (kuraMode) {
         case "INFRA":
@@ -376,31 +671,16 @@ public class NMSettingsConverter {
         }
     }
 
-    private static String wifiKeyMgmtConvert(String kuraSecurityType) {
-        switch (kuraSecurityType) {
-        case "NONE":
-        case "SECURITY_WEP":
-            return "none";
-        case "SECURITY_WPA":
-        case "SECURITY_WPA2":
-        case "SECURITY_WPA_WPA2":
-            return "wpa-psk";
-        default:
-            throw new IllegalArgumentException(
-                    String.format("Unsupported WiFi key management \"%s\"", kuraSecurityType));
-        }
-    }
-
-    private static List<String> wifiProtoConvert(String kuraSecurityProto) {
-        switch (kuraSecurityProto) {
-        case "SECURITY_WPA":
+    private static List<String> wifiProtoConvert(KuraWifiSecurityType securityType) {
+        switch (securityType) {
+        case SECURITY_WPA:
             return Arrays.asList("wpa");
-        case "SECURITY_WPA2":
+        case SECURITY_WPA2:
             return Arrays.asList("rsn");
-        case "SECURITY_WPA_WPA2":
+        case SECURITY_WPA_WPA2:
             return Arrays.asList();
         default:
-            throw new IllegalArgumentException(String.format("Unsupported WiFi proto \"%s\"", kuraSecurityProto));
+            throw new IllegalArgumentException(String.format("Unsupported WiFi proto \"%s\"", securityType));
         }
     }
 

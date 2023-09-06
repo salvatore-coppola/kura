@@ -614,13 +614,15 @@ fi]]>
                 prefix="${build.output.name}/${install.folder}" />
             <zipfileset file="src/main/resources/common/kura-dhclient-enter-hook"
                 prefix="${build.output.name}/${install.folder}" />
-        	
+            <zipfileset file="src/main/resources/common/kura-dhclient-enter-route-hook"
+                prefix="${build.output.name}/${install.folder}" />
+
             <zipfileset file="src/main/resources/common/dnsmasq"
                 prefix="${build.output.name}/${install.folder}" />
-        	
+
             <zipfileset file="${project.build.directory}/${build.output.name}/selinuxKura.pp"
             	prefix="${build.output.name}/${install.folder}" />
-        	
+
             <zipfileset
                 file="${project.build.directory}/${build.output.name}/start_kura.sh"
                 fullpath="${build.output.name}/${binary.folder}/start_kura.sh"
@@ -1310,6 +1312,14 @@ fi]]>
             <entry key="osgi.bundles" operation="+"
                 value=", reference:file:${kura.install.dir}/${kura.symlink}/${plugins.folder}/org.eclipse.kura.rest.configuration.provider_${org.eclipse.kura.rest.configuration.provider.version}.jar@4:start" />
             <entry key="osgi.bundles" operation="+"
+                value=", reference:file:${kura.install.dir}/${kura.symlink}/${plugins.folder}/org.eclipse.kura.rest.inventory.provider_${org.eclipse.kura.rest.inventory.provider.version}.jar@4:start" />
+            <entry key="osgi.bundles" operation="+"
+                value=", reference:file:${kura.install.dir}/${kura.symlink}/${plugins.folder}/org.eclipse.kura.rest.command.provider_${org.eclipse.kura.rest.command.provider.version}.jar@4:start" />
+            <entry key="osgi.bundles" operation="+"
+                value=", reference:file:${kura.install.dir}/${kura.symlink}/${plugins.folder}/org.eclipse.kura.rest.position.provider_${org.eclipse.kura.rest.position.provider.version}.jar@4:start" />
+            <entry key="osgi.bundles" operation="+"
+                value=", reference:file:${kura.install.dir}/${kura.symlink}/${plugins.folder}/org.eclipse.kura.rest.system.provider_${org.eclipse.kura.rest.system.provider.version}.jar@4:start" />
+            <entry key="osgi.bundles" operation="+"
                 value=", reference:file:${kura.install.dir}/${kura.symlink}/${plugins.folder}/org.eclipse.kura.rest.wire.provider_${org.eclipse.kura.rest.wire.provider.version}.jar@4:start" />
             <entry key="osgi.bundles" operation="+"
                 value=", reference:file:${kura.install.dir}/${kura.symlink}/${plugins.folder}/org.eclipse.kura.request.handler.jaxrs_${org.eclipse.kura.request.handler.jaxrs.version}.jar@4" />
@@ -1394,6 +1404,18 @@ fi]]>
                 prefix="${build.output.name}/${plugins.folder}" />
             <zipfileset
                 file="${project.build.directory}/plugins/org.eclipse.kura.rest.configuration.provider_${org.eclipse.kura.rest.configuration.provider.version}.jar"
+                prefix="${build.output.name}/${plugins.folder}" />
+            <zipfileset
+                file="${project.build.directory}/plugins/org.eclipse.kura.rest.inventory.provider_${org.eclipse.kura.rest.inventory.provider.version}.jar"
+                prefix="${build.output.name}/${plugins.folder}" />
+            <zipfileset
+                file="${project.build.directory}/plugins/org.eclipse.kura.rest.command.provider_${org.eclipse.kura.rest.command.provider.version}.jar"
+                prefix="${build.output.name}/${plugins.folder}" />
+            <zipfileset
+                file="${project.build.directory}/plugins/org.eclipse.kura.rest.position.provider_${org.eclipse.kura.rest.position.provider.version}.jar"
+                prefix="${build.output.name}/${plugins.folder}" />
+            <zipfileset
+                file="${project.build.directory}/plugins/org.eclipse.kura.rest.system.provider_${org.eclipse.kura.rest.system.provider.version}.jar"
                 prefix="${build.output.name}/${plugins.folder}" />
             <zipfileset
                 file="${project.build.directory}/plugins/org.eclipse.kura.rest.wire.provider_${org.eclipse.kura.rest.wire.provider.version}.jar"
@@ -1532,6 +1554,8 @@ fi]]>
 
         <propertyfile
             file="${project.build.directory}/${build.output.name}/config.ini">
+            <entry key="osgi.bundles" operation="+"
+                value=", reference:file:${kura.install.dir}/${kura.symlink}/${plugins.folder}/com.google.guava.failureaccess_${failureaccess.version}.jar@3" />
             <entry key="osgi.bundles" operation="+"
                 value=", reference:file:${kura.install.dir}/${kura.symlink}/${plugins.folder}/com.google.guava_${guava.distrib.version}.jar@3" />
 
