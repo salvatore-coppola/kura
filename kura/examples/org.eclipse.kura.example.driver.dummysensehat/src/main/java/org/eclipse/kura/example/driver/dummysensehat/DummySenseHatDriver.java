@@ -45,11 +45,12 @@ public class DummySenseHatDriver implements Driver, ConfigurableComponent {
 
     private final Map<Resource, Set<ChannelListenerRegistration>> channelListeners = new EnumMap<>(Resource.class);
 
-    public static synchronized void getSensehatInterface(Boolean anomalyMode) {
+    public static synchronized void getSensehatInterface(Boolean anomalyMode, int anomalyPercentage,
+            float anomalyValue) {
 
         logger.info("Opening Sense Hat...");
         try {
-            senseHatInterface = new DummySenseHatInterface(anomalyMode);
+            senseHatInterface = new DummySenseHatInterface(anomalyMode, anomalyPercentage, anomalyValue);
         } catch (IOException e) {
             logger.error("Failed to load Dummy SenseHat Interface {}", e.getMessage(), e);
         }
@@ -72,14 +73,18 @@ public class DummySenseHatDriver implements Driver, ConfigurableComponent {
     public void activate(final Map<String, Object> properties) {
         logger.info("Activating SenseHat Driver...");
         Boolean anomalyMode = (Boolean) properties.get("anomaly_mode");
-        getSensehatInterface(anomalyMode);
+        Integer anomalyPercentage = (Integer) properties.get("anomaly_percentage");
+        Float anomalyValue = (Float) properties.get("anomaly_value");
+        getSensehatInterface(anomalyMode, anomalyPercentage, anomalyValue);
         logger.info("Activating SenseHat Driver... Done");
     }
 
     public void updated(final Map<String, Object> properties) {
         Boolean anomalyMode = (Boolean) properties.get("anomaly_mode");
+        Integer anomalyPercentage = (Integer) properties.get("anomaly_percentage");
+        Float anomalyValue = (Float) properties.get("anomaly_value");
         ungetSensehatInteface();
-        getSensehatInterface(anomalyMode);
+        getSensehatInterface(anomalyMode, anomalyPercentage, anomalyValue);
     }
 
     public void deactivate() {

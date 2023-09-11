@@ -40,11 +40,7 @@ import com.google.gson.stream.JsonReader;
 
 public class DummySenseHatInterface implements Closeable {
 
-    private static final String ANOMALY_VALUE = "100.0";
-
     private static final Logger logger = LoggerFactory.getLogger(DummySenseHatInterface.class);
-
-    private static final int ANOMALY_PERCENTAGE = 5;
 
     // x,y,z
     private float[] accelerometer = new float[3];
@@ -66,11 +62,15 @@ public class DummySenseHatInterface implements Closeable {
     }.getType();
 
     private boolean anomalyMode;
+    private int anomalyPercentage;
+    private String anomalyValue;
 
     private Random random;
 
-    public DummySenseHatInterface(boolean anomalyMode) throws IOException {
+    public DummySenseHatInterface(boolean anomalyMode, int anomalyPercentage, float anomalyValue) throws IOException {
         this.anomalyMode = anomalyMode;
+        this.anomalyPercentage = anomalyPercentage;
+        this.anomalyValue = String.valueOf(anomalyValue);
 
         this.random = new Random();
 
@@ -114,7 +114,7 @@ public class DummySenseHatInterface implements Closeable {
         if (this.anomalyMode) {
             int r = this.random.nextInt(100);
 
-            if (r <= ANOMALY_PERCENTAGE - 1) {
+            if (r <= this.anomalyPercentage - 1) {
                 element = setAnomalyValue();
             }
         }
@@ -159,19 +159,19 @@ public class DummySenseHatInterface implements Closeable {
     private Map<String, String> setAnomalyValue() {
         Map<String, String> element;
         element = new HashMap<>();
-        element.put("HUMIDITY", ANOMALY_VALUE);
-        element.put("PRESSURE", ANOMALY_VALUE);
-        element.put("TEMP_HUM", ANOMALY_VALUE);
-        element.put("TEMP_PRESS", ANOMALY_VALUE);
-        element.put("ACC_X", ANOMALY_VALUE);
-        element.put("ACC_Y", ANOMALY_VALUE);
-        element.put("ACC_Z", ANOMALY_VALUE);
-        element.put("GYRO_X", ANOMALY_VALUE);
-        element.put("GYRO_Y", ANOMALY_VALUE);
-        element.put("GYRO_Z", ANOMALY_VALUE);
-        element.put("MAGNET_X", ANOMALY_VALUE);
-        element.put("MAGNET_Y", ANOMALY_VALUE);
-        element.put("MAGNET_Z", ANOMALY_VALUE);
+        element.put("HUMIDITY", this.anomalyValue);
+        element.put("PRESSURE", this.anomalyValue);
+        element.put("TEMP_HUM", this.anomalyValue);
+        element.put("TEMP_PRESS", this.anomalyValue);
+        element.put("ACC_X", this.anomalyValue);
+        element.put("ACC_Y", this.anomalyValue);
+        element.put("ACC_Z", this.anomalyValue);
+        element.put("GYRO_X", this.anomalyValue);
+        element.put("GYRO_Y", this.anomalyValue);
+        element.put("GYRO_Z", this.anomalyValue);
+        element.put("MAGNET_X", this.anomalyValue);
+        element.put("MAGNET_Y", this.anomalyValue);
+        element.put("MAGNET_Z", this.anomalyValue);
         return element;
     }
 
