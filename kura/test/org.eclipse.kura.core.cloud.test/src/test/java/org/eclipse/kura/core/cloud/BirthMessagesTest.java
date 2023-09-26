@@ -205,6 +205,50 @@ public class BirthMessagesTest {
         thenBirthIsPublishedAfter(SEND_DELAY, BIRTH_TOPIC_PREFIX + CloudServiceOptions.getTopicAppsSuffix());
     }
 
+    @Test
+    public void shouldPublishBirthOnInstalledEvent() throws KuraException {
+        givenDeploymentAdminPackageInstallEvent();
+        givenConfiguredCloudService();
+        givenConnected();
+
+        whenHandleEvent();
+
+        thenBirthIsPublishedAfter(SEND_DELAY, BIRTH_TOPIC_PREFIX + CloudServiceOptions.getTopicBirthSuffix());
+    }
+
+    @Test
+    public void shouldPublishBirthOnUninstalledEvent() throws KuraException {
+        givenDeploymentAdminPackageUninstallEvent();
+        givenConfiguredCloudService();
+        givenConnected();
+
+        whenHandleEvent();
+
+        thenBirthIsPublishedAfter(SEND_DELAY, BIRTH_TOPIC_PREFIX + CloudServiceOptions.getTopicBirthSuffix());
+    }
+
+    @Test
+    public void shouldNotPublishBirthOnInstalledEventIfNotConnected() throws KuraException {
+        givenDeploymentAdminPackageInstallEvent();
+        givenConfiguredCloudService();
+        givenDisconnected();
+
+        whenHandleEvent();
+
+        thenNoBirthIsPublished();
+    }
+
+    @Test
+    public void shouldNotPublishBirthOnUninstalledEventIfNotConnected() throws KuraException {
+        givenDeploymentAdminPackageUninstallEvent();
+        givenConfiguredCloudService();
+        givenDisconnected();
+
+        whenHandleEvent();
+
+        thenNoBirthIsPublished();
+    }
+
     /*
      * Steps
      */
@@ -244,6 +288,13 @@ public class BirthMessagesTest {
         this.event = new Event(TamperEvent.TAMPER_EVENT_TOPIC, new HashMap<String, Object>());
     }
 
+    private void givenDeploymentAdminPackageInstallEvent() {
+        this.event = new Event(CloudServiceImpl.EVENT_TOPIC_DEPLOYMENT_ADMIN_INSTALL, new HashMap<String, Object>());
+    }
+
+    private void givenDeploymentAdminPackageUninstallEvent() {
+        this.event = new Event(CloudServiceImpl.EVENT_TOPIC_DEPLOYMENT_ADMIN_UNINSTALL, new HashMap<String, Object>());
+    }
 
     /*
      * When
@@ -412,7 +463,6 @@ public class BirthMessagesTest {
         properties.put(ConfigurationService.KURA_SERVICE_PID, "test.pid");
         properties.put("payload.encoding", "simple-json");
         properties.put("topic.control-prefix", "$EDC");
-        properties.put("birth.cert.policy", "birth-connect-reconnect");
         properties.put("republish.mqtt.birth.cert.on.gps.lock", true);
         properties.put("republish.mqtt.birth.cert.on.modem.detect", true);
         properties.put("republish.mqtt.birth.cert.on.tamper.event", true);
@@ -435,11 +485,6 @@ public class BirthMessagesTest {
         
 
         return componentContext;
-    }
-
-    private Object anyObject() {
-        // TODO Auto-generated method stub
-        return null;
     }
 
 }

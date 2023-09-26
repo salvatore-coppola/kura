@@ -15,6 +15,7 @@ package org.eclipse.kura.net.admin;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -354,4 +355,17 @@ public abstract class AbstractFirewallConfigurationServiceImpl<U extends IPAddre
         return this.firewall.getPortForwardRules();
     }
 
+    public void addFloodingProtectionRules(Set<String> floodingRules) {
+        // The flooding protection rules are applied only to the mangle table.
+        addFloodingProtectionRules(new LinkedHashSet<>(), new LinkedHashSet<>(), floodingRules);
+    }
+
+    public void addFloodingProtectionRules(Set<String> filterFloodingRules, Set<String> natFloodingRules,
+            Set<String> mangleFloodingRules) {
+        try {
+            this.firewall.setAdditionalRules(filterFloodingRules, natFloodingRules, mangleFloodingRules);
+        } catch (KuraException e) {
+            logger.error("Failed to set Firewall Flooding Protection Configuration", e);
+        }
+    }
 }

@@ -92,6 +92,9 @@ public class CloudConnectionManagerImpl
 
     private static final String CONNECTION_EVENT_PID_PROPERTY_KEY = "cloud.service.pid";
 
+    static final String EVENT_TOPIC_DEPLOYMENT_ADMIN_INSTALL = "org/osgi/service/deployment/INSTALL";
+    static final String EVENT_TOPIC_DEPLOYMENT_ADMIN_UNINSTALL = "org/osgi/service/deployment/UNINSTALL";
+
     private static final int NUM_CONCURRENT_CALLBACKS = 2;
 
     private static ExecutorService callbackExecutor = Executors.newFixedThreadPool(NUM_CONCURRENT_CALLBACKS);
@@ -117,7 +120,6 @@ public class CloudConnectionManagerImpl
     String rssi;
     String modemFwVer;
 
-    private boolean birthPublished;
     private String ownPid;
 
     private final AtomicInteger messageId;
@@ -250,7 +252,8 @@ public class CloudConnectionManagerImpl
         // install event listener for GPS locked event
         Dictionary<String, Object> props = new Hashtable<>();
         String[] eventTopics = { PositionLockedEvent.POSITION_LOCKED_EVENT_TOPIC,
-                ModemReadyEvent.MODEM_EVENT_READY_TOPIC };
+                ModemReadyEvent.MODEM_EVENT_READY_TOPIC, EVENT_TOPIC_DEPLOYMENT_ADMIN_INSTALL,
+                EVENT_TOPIC_DEPLOYMENT_ADMIN_UNINSTALL };
         props.put(EventConstants.EVENT_TOPIC, eventTopics);
         this.cloudServiceRegistration = this.ctx.getBundleContext().registerService(EventHandler.class.getName(), this,
                 props);
@@ -312,44 +315,68 @@ public class CloudConnectionManagerImpl
 
     @Override
     public void handleEvent(Event event) {
-        if (PositionLockedEvent.POSITION_LOCKED_EVENT_TOPIC.contains(event.getTopic())) {
-            // if we get a position locked event,
-            // republish the birth certificate only if we are configured to
-            logger.info("Handling PositionLockedEvent");
-            if (this.dataService.isConnected() && this.options.getRepubBirthCertOnGpsLock()) {
-                try {
-                    publishBirthCertificate(false);
-                } catch (KuraException e) {
-                    logger.warn("Cannot publish birth certificate", e);
-                }
-            }
-        } else if (ModemReadyEvent.MODEM_EVENT_READY_TOPIC.contains(event.getTopic())) {
-            logger.info("Handling ModemReadyEvent");
-            ModemReadyEvent modemReadyEvent = (ModemReadyEvent) event;
-            // keep these identifiers around until we can publish the certificate
-            this.imei = (String) modemReadyEvent.getProperty(ModemReadyEvent.IMEI);
-            this.imsi = (String) modemReadyEvent.getProperty(ModemReadyEvent.IMSI);
-            this.iccid = (String) modemReadyEvent.getProperty(ModemReadyEvent.ICCID);
-            this.rssi = (String) modemReadyEvent.getProperty(ModemReadyEvent.RSSI);
-            this.modemFwVer = (String) modemReadyEvent.getProperty(ModemReadyEvent.FW_VERSION);
-            logger.trace("handleEvent() :: IMEI={}", this.imei);
-            logger.trace("handleEvent() :: IMSI={}", this.imsi);
-            logger.trace("handleEvent() :: ICCID={}", this.iccid);
-            logger.trace("handleEvent() :: RSSI={}", this.rssi);
-            logger.trace("handleEvent() :: FW_VERSION={}", this.modemFwVer);
+        String topic = event.getTopic();
 
-            if (this.dataService.isConnected() && this.options.getRepubBirthCertOnModemDetection()
-                    && !((this.imei == null || this.imei.length() == 0 || ERROR.equals(this.imei))
-                            && (this.imsi == null || this.imsi.length() == 0 || ERROR.equals(this.imsi))
-                            && (this.iccid == null || this.iccid.length() == 0 || ERROR.equals(this.iccid)))) {
-                logger.debug("handleEvent() :: publishing BIRTH certificate ...");
-                try {
-                    publishBirthCertificate(false);
-                } catch (KuraException e) {
-                    logger.warn("Cannot publish birth certificate", e);
-                }
-            }
+        if (PositionLockedEvent.POSITION_LOCKED_EVENT_TOPIC.contains(topic)) {
+            handlePositionLockedEvent();
+            return;
+        }
 
+        if (ModemReadyEvent.MODEM_EVENT_READY_TOPIC.contains(topic)) {
+            handleModemReadyEvent(event);
+            return;
+        }
+
+        if ((EVENT_TOPIC_DEPLOYMENT_ADMIN_INSTALL.equals(topic)
+                || EVENT_TOPIC_DEPLOYMENT_ADMIN_UNINSTALL.equals(topic)) && this.dataService.isConnected()) {
+            logger.debug("CloudConnectionManagerImpl: received install/uninstall event, publishing BIRTH.");
+            tryPublishBirthCertificate(false);
+        }
+    }
+    
+    private void handlePositionLockedEvent() {
+        // if we get a position locked event,
+        // republish the birth certificate only if we are configured to
+        logger.info("Handling PositionLockedEvent");
+        if (this.dataService.isConnected() && this.options.getRepubBirthCertOnGpsLock()) {
+            tryPublishBirthCertificate(false);
+        }
+    }
+
+    private void handleModemReadyEvent(Event event) {
+        logger.info("Handling ModemReadyEvent");
+        ModemReadyEvent modemReadyEvent = (ModemReadyEvent) event;
+        // keep these identifiers around until we can publish the certificate
+        this.imei = (String) modemReadyEvent.getProperty(ModemReadyEvent.IMEI);
+        this.imsi = (String) modemReadyEvent.getProperty(ModemReadyEvent.IMSI);
+        this.iccid = (String) modemReadyEvent.getProperty(ModemReadyEvent.ICCID);
+        this.rssi = (String) modemReadyEvent.getProperty(ModemReadyEvent.RSSI);
+        this.modemFwVer = (String) modemReadyEvent.getProperty(ModemReadyEvent.FW_VERSION);
+        logger.trace("handleEvent() :: IMEI={}", this.imei);
+        logger.trace("handleEvent() :: IMSI={}", this.imsi);
+        logger.trace("handleEvent() :: ICCID={}", this.iccid);
+        logger.trace("handleEvent() :: RSSI={}", this.rssi);
+        logger.trace("handleEvent() :: FW_VERSION={}", this.modemFwVer);
+
+        if (this.dataService.isConnected() && this.options.getRepubBirthCertOnModemDetection() && isModemInfoValid()) {
+            logger.debug("handleEvent() :: publishing BIRTH certificate ...");
+            tryPublishBirthCertificate(false);
+        }
+    }
+
+    private boolean isModemInfoValid(final String modemInfo) {
+        return !(modemInfo == null || modemInfo.length() == 0 || modemInfo.equals(ERROR));
+    }
+
+    public boolean isModemInfoValid() {
+        return isModemInfoValid(this.imei) && isModemInfoValid(this.imsi) && isModemInfoValid(this.iccid);
+    }
+
+    private void tryPublishBirthCertificate(boolean isNewConnection) {
+        try {
+            publishBirthCertificate(isNewConnection);
+        } catch (KuraException e) {
+            logger.warn("Cannot publish birth certificate", e);
         }
     }
 
@@ -415,8 +442,6 @@ public class CloudConnectionManagerImpl
         } catch (KuraException e) {
             logger.warn("Cannot publish disconnect certificate");
         }
-
-        this.birthPublished = false;
     }
 
     @Override
@@ -574,20 +599,7 @@ public class CloudConnectionManagerImpl
     // ----------------------------------------------------------------
 
     private void setupCloudConnection(boolean isNewConnection) throws KuraException {
-        // publish birth certificate unless it has already been published
-        // and republish is disabled
-        boolean publishBirth = true;
-        if (this.birthPublished && !this.options.getRepubBirthCertOnReconnect()) {
-            publishBirth = false;
-            logger.info("Birth certificate republish is disabled in configuration");
-        }
-
-        // publish birth certificate
-        if (publishBirth) {
-            publishBirthCertificate(isNewConnection);
-            this.birthPublished = true;
-        }
-
+        publishBirthCertificate(isNewConnection);
         setupDeviceSubscriptions();
     }
 
@@ -602,10 +614,6 @@ public class CloudConnectionManagerImpl
     }
 
     private void publishBirthCertificate(boolean isNewConnection) throws KuraException {
-        if (this.options.isLifecycleCertsDisabled()) {
-            return;
-        }
-
         LifecycleMessage birthToPublish = new LifecycleMessage(this.options, this).asBirthCertificateMessage();
 
         if (isNewConnection) {
@@ -616,24 +624,20 @@ public class CloudConnectionManagerImpl
     }
 
     private void publishDisconnectCertificate() throws KuraException {
-        if (this.options.isLifecycleCertsDisabled()) {
-            return;
-        }
-
         publishLifeCycleMessage(new LifecycleMessage(this.options, this).asDisconnectCertificateMessage());
     }
 
     private void publishWithDelay(LifecycleMessage message) {
         if (Objects.nonNull(this.scheduledBirthPublisherFuture)) {
             this.scheduledBirthPublisherFuture.cancel(false);
-            logger.debug("CloudServiceImpl: BIRTH message cache timer restarted.");
+            logger.debug("CloudConnectionManagerImpl: BIRTH message cache timer restarted.");
         }
 
-        logger.debug("CloudServiceImpl: BIRTH message cached for 30s.");
+        logger.debug("CloudConnectionManagerImpl: BIRTH message cached for 30s.");
         
         this.scheduledBirthPublisherFuture = this.scheduledBirthPublisher.schedule(() -> {
             try {
-                logger.debug("CloudServiceImpl: publishing cached BIRTH message.");
+                logger.debug("CloudConnectionManagerImpl: publishing cached BIRTH message.");
                 publishLifeCycleMessage(message);
             } catch (KuraException e) {
                 logger.error("Error sending cached BIRTH/APP certificate.", e);
