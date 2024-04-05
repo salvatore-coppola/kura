@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2023 Eurotech and/or its affiliates and others
+ * Copyright (c) 2023, 2024 Eurotech and/or its affiliates and others
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -16,13 +16,28 @@ package org.eclipse.kura.nm.configuration;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
+import javax.xml.bind.DatatypeConverter;
+
+import org.bouncycastle.openssl.PKCS8Generator;
+import org.bouncycastle.openssl.jcajce.JcaPKCS8Generator;
+import org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.OutputEncryptor;
+import org.bouncycastle.util.io.pem.PemGenerationException;
 import org.eclipse.kura.configuration.Password;
 import org.eclipse.kura.nm.Kura8021xEAP;
 import org.eclipse.kura.nm.Kura8021xInnerAuth;
@@ -32,6 +47,7 @@ import org.eclipse.kura.nm.KuraIp6Privacy;
 import org.eclipse.kura.nm.KuraIpStatus;
 import org.eclipse.kura.nm.KuraWifiSecurityType;
 import org.eclipse.kura.nm.NetworkProperties;
+import org.eclipse.kura.nm.SemanticVersion;
 import org.eclipse.kura.nm.enums.NM8021xEAP;
 import org.eclipse.kura.nm.enums.NM8021xPhase2Auth;
 import org.eclipse.kura.nm.enums.NMDeviceType;
@@ -52,6 +68,7 @@ public class NMSettingsConverter {
     private static final String NM_SETTINGS_IPV6_METHOD = "method";
     private static final String NM_SETTINGS_IPV4_IGNORE_AUTO_DNS = "ignore-auto-dns";
     private static final String NM_SETTINGS_IPV6_IGNORE_AUTO_DNS = "ignore-auto-dns";
+    private static final String NM_SETTINGS_ETHERNET = "802-3-ethernet";
 
     private static final String PPP_REFUSE_EAP = "refuse-eap";
     private static final String PPP_REFUSE_CHAP = "refuse-chap";
@@ -63,20 +80,22 @@ public class NMSettingsConverter {
 
     private static final String KURA_PROPS_KEY_WIFI_MODE = "net.interface.%s.config.wifi.mode";
     private static final String KURA_PROPS_KEY_WIFI_SECURITY_TYPE = "net.interface.%s.config.wifi.%s.securityType";
+    private static final String KURA_PROPS_IPV4_MTU = "net.interface.%s.config.ip4.mtu";
 
     private NMSettingsConverter() {
         throw new IllegalStateException("Utility class");
     }
 
     public static Map<String, Map<String, Variant<?>>> buildSettings(NetworkProperties properties,
-            Optional<Connection> oldConnection, String deviceId, String iface, NMDeviceType deviceType) {
+            Optional<Connection> oldConnection, String deviceId, String iface, NMDeviceType deviceType,
+            SemanticVersion nmVersion) {
         Map<String, Map<String, Variant<?>>> newConnectionSettings = new HashMap<>();
 
         Map<String, Variant<?>> connectionMap = buildConnectionSettings(oldConnection, iface, deviceType);
         newConnectionSettings.put(NM_SETTINGS_CONNECTION, connectionMap);
 
         Map<String, Variant<?>> ipv4Map = NMSettingsConverter.buildIpv4Settings(properties, deviceId);
-        Map<String, Variant<?>> ipv6Map = NMSettingsConverter.buildIpv6Settings(properties, deviceId);
+        Map<String, Variant<?>> ipv6Map = NMSettingsConverter.buildIpv6Settings(properties, deviceId, nmVersion);
         newConnectionSettings.put("ipv4", ipv4Map);
         newConnectionSettings.put("ipv6", ipv6Map);
 
@@ -107,7 +126,14 @@ public class NMSettingsConverter {
             newConnectionSettings.put("ppp", pppSettingsMap);
         } else if (deviceType == NMDeviceType.NM_DEVICE_TYPE_VLAN) {
             Map<String, Variant<?>> vlanSettingsMap = buildVlanSettings(properties, deviceId);
+            Map<String, Variant<?>> ethSettingsMap = NMSettingsConverter.buildEthernetSettings(properties, deviceId,
+                    nmVersion);
             newConnectionSettings.put("vlan", vlanSettingsMap);
+            newConnectionSettings.put(NM_SETTINGS_ETHERNET, ethSettingsMap);
+        } else if (deviceType == NMDeviceType.NM_DEVICE_TYPE_ETHERNET) {
+            Map<String, Variant<?>> ethSettingsMap = NMSettingsConverter.buildEthernetSettings(properties, deviceId,
+                    nmVersion);
+            newConnectionSettings.put(NM_SETTINGS_ETHERNET, ethSettingsMap);
         }
 
         return newConnectionSettings;
@@ -171,36 +197,47 @@ public class NMSettingsConverter {
         String identity = props.get(String.class, "net.interface.%s.config.802-1x.identity", deviceId);
         settings.put("identity", new Variant<>(identity));
 
-        String clientCert = props.get(String.class, "net.interface.%s.config.802-1x.client-cert", deviceId);
-        settings.put("client-cert", new Variant<>(clientCert.getBytes(StandardCharsets.UTF_8)));
+        Certificate clientCert = props.get(Certificate.class, "net.interface.%s.config.802-1x.client-cert-name",
+                deviceId);
+        try {
+            settings.put("client-cert", new Variant<>(clientCert.getEncoded()));
+        } catch (CertificateEncodingException e) {
+            logger.error("Unable to decode Client Certificate for interface \"{}\"", deviceId);
+        }
 
-        String privateKey = props.get(String.class, "net.interface.%s.config.802-1x.private-key", deviceId);
-        settings.put("private-key", new Variant<>(privateKey.getBytes(StandardCharsets.UTF_8)));
+        PrivateKey privateKey = props.get(PrivateKey.class, "net.interface.%s.config.802-1x.private-key-name",
+                deviceId);
+        try {
+            // The private key is encrypted using the SHA-256 of the private key itself as password
+            byte[] privateKeyPasswordBytes = MessageDigest.getInstance("SHA-256").digest(privateKey.getEncoded());
+            String privateKeyPassword = Base64.getEncoder().encodeToString(privateKeyPasswordBytes);
+            settings.put("private-key-password", new Variant<>(privateKeyPassword));
 
-        String privateKeyPassword = props
-                .get(Password.class, "net.interface.%s.config.802-1x.private-key-password", deviceId).toString();
-        settings.put("private-key-password", new Variant<>(privateKeyPassword));
-
+            byte[] encryptedPrivateKey = convertToPem(encryptPrivateKey(privateKey, privateKeyPassword));
+            settings.put("private-key", new Variant<>(encryptedPrivateKey));
+        } catch (NoSuchAlgorithmException e) {
+            logger.error("Something went wrong while computing SHA-256 of private key, bailing out. Caused by: ", e);
+        } catch (OperatorCreationException | PemGenerationException e) {
+            logger.error("Something went wrong during private key encryption, bailing out. Caused by: ", e);
+        }
     }
 
     private static void create8021xOptionalCaCertAndAnonIdentity(NetworkProperties props, String deviceId,
             Map<String, Variant<?>> settings) {
+
         Optional<String> anonymousIdentity = props.getOpt(String.class,
                 "net.interface.%s.config.802-1x.anonymous-identity", deviceId);
-        if (anonymousIdentity.isPresent()) {
-            settings.put("anonymous-identity", new Variant<>(anonymousIdentity.get()));
-        }
+        anonymousIdentity.ifPresent(value -> settings.put("anonymous-identity", new Variant<>(value)));
 
-        Optional<String> caCert = props.getOpt(String.class, "net.interface.%s.config.802-1x.ca-cert", deviceId);
-        if (caCert.isPresent()) {
-            settings.put("ca-cert", new Variant<>(caCert.get().getBytes(StandardCharsets.UTF_8)));
-        }
-
-        Optional<Password> caCertPassword = props.getOpt(Password.class,
-                "net.interface.%s.config.802-1x.ca-cert-password", deviceId);
-        if (caCertPassword.isPresent()) {
-            settings.put("ca-cert-password", new Variant<>(caCertPassword.get().toString()));
-        }
+        Optional<Certificate> caCert = props.getOpt(Certificate.class, "net.interface.%s.config.802-1x.ca-cert-name",
+                deviceId);
+        caCert.ifPresent(value -> {
+            try {
+                settings.put("ca-cert", new Variant<>(value.getEncoded()));
+            } catch (CertificateEncodingException | IllegalArgumentException e) {
+                logger.warn("Unable to decode CA Certificate for interface \"{}\", caused by: ", deviceId, e);
+            }
+        });
     }
 
     private static void create8021xMschapV2(NetworkProperties props, String deviceId,
@@ -277,11 +314,11 @@ public class NMSettingsConverter {
         return settings;
     }
 
-    public static Map<String, Variant<?>> buildIpv6Settings(NetworkProperties props, String deviceId) {
+    public static Map<String, Variant<?>> buildIpv6Settings(NetworkProperties props, String deviceId,
+            SemanticVersion nmVersion) {
 
         // buildIpv6Settings doesn't support Unmanaged status. Therefore if ip6.status
-        // property is not set, it assumes
-        // it is disabled.
+        // property is not set, it assumes it is disabled.
 
         Optional<KuraIpStatus> ip6OptStatus = KuraIpStatus
                 .fromString(props.getOpt(String.class, "net.interface.%s.config.ip6.status", deviceId));
@@ -374,6 +411,13 @@ public class NMSettingsConverter {
             logger.warn("Unexpected ip status received: \"{}\". Ignoring", ip6Status);
         }
 
+        Optional<Integer> mtu = props.getOpt(Integer.class, "net.interface.%s.config.ip6.mtu", deviceId);
+        if (nmVersion.isGreaterEqualThan("1.40")) {
+            // ipv6.mtu only supported in NetworkManager 1.40 and above
+            mtu.ifPresent(value -> settings.put("mtu", new Variant<>(new UInt32(value))));
+        } else {
+            logger.warn("Ignoring parameter ipv6.mtu: NetworkManager 1.40 or above is required");
+        }
         return settings;
     }
 
@@ -400,6 +444,9 @@ public class NMSettingsConverter {
         Optional<Boolean> hidden = props.getOpt(Boolean.class, "net.interface.%s.config.wifi.%s.ignoreSSID", deviceId,
                 propMode.toLowerCase());
         hidden.ifPresent(hiddenString -> settings.put("hidden", new Variant<>(hiddenString)));
+
+        Optional<Integer> mtu = props.getOpt(Integer.class, KURA_PROPS_IPV4_MTU, deviceId);
+        mtu.ifPresent(value -> settings.put("mtu", new Variant<>(new UInt32(value))));
 
         return settings;
     }
@@ -494,6 +541,9 @@ public class NMSettingsConverter {
         Optional<String> number = props.getOpt(String.class, "net.interface.%s.config.dialString", deviceId);
         number.ifPresent(numberString -> settings.put("number", new Variant<>(numberString)));
 
+        Optional<Integer> mtu = props.getOpt(Integer.class, KURA_PROPS_IPV4_MTU, deviceId);
+        mtu.ifPresent(value -> settings.put("mtu", new Variant<>(new UInt32(value))));
+
         return settings;
     }
 
@@ -512,7 +562,7 @@ public class NMSettingsConverter {
 
         return settings;
     }
-    
+
     public static Map<String, Variant<?>> buildVlanSettings(NetworkProperties props, String deviceId) {
         Map<String, Variant<?>> settings = new HashMap<>();
         settings.put("interface-name", new Variant<>(deviceId));
@@ -524,11 +574,27 @@ public class NMSettingsConverter {
         settings.put("flags", new Variant<>(new UInt32(vlanFlags.orElse(1))));
         DBusListType listType = new DBusListType(String.class);
         Optional<List<String>> ingressMap = props.getOptStringList("net.interface.%s.config.vlan.ingress", deviceId);
-        settings.put("ingress-priority-map", new Variant<>(ingressMap
-                .orElse(new ArrayList<String>()), listType));
+        settings.put("ingress-priority-map", new Variant<>(ingressMap.orElse(new ArrayList<>()), listType));
         Optional<List<String>> egressMap = props.getOptStringList("net.interface.%s.config.vlan.egress", deviceId);
-        settings.put("egress-priority-map", new Variant<>(egressMap
-                .orElse(new ArrayList<String>()), listType));
+        settings.put("egress-priority-map", new Variant<>(egressMap.orElse(new ArrayList<>()), listType));
+        return settings;
+    }
+
+    public static Map<String, Variant<?>> buildEthernetSettings(NetworkProperties props, String deviceId,
+            SemanticVersion nmVersion) {
+        Map<String, Variant<?>> settings = new HashMap<>();
+        Optional<Integer> mtu = props.getOpt(Integer.class, KURA_PROPS_IPV4_MTU, deviceId);
+        mtu.ifPresent(value -> settings.put("mtu", new Variant<>(new UInt32(value))));
+
+        Optional<Integer> promisc = props.getOpt(Integer.class, "net.interface.%s.config.promisc", deviceId);
+        if (nmVersion.isGreaterEqualThan("1.32")) {
+            // ethernet.accept-all-mac-addresses only supported in NetworkManager 1.32 and above
+            promisc.ifPresent(value -> settings.put("accept-all-mac-addresses", new Variant<>(value)));
+        } else {
+            promisc.ifPresent(value -> logger.warn(
+                    "Ignoring parameter accept-all-mac-addresses [{}]: NetworkManager 1.32 or above is required",
+                    value));
+        }
         return settings;
     }
 
@@ -552,7 +618,7 @@ public class NMSettingsConverter {
 
         return connectionMap;
     }
-    
+
     private static Map<String, Variant<?>> createConnectionSettings(String iface) {
         Map<String, Variant<?>> connectionMap = new HashMap<>();
 
@@ -725,4 +791,26 @@ public class NMSettingsConverter {
         }
     }
 
+    private static byte[] encryptPrivateKey(PrivateKey privateKey, String privateKeyPassword)
+            throws OperatorCreationException, PemGenerationException {
+        // Assumption: the private key is encoded in PKCS#8 DER format
+        if (privateKey.getEncoded() == null) {
+            throw new NoSuchElementException("Unable to decode Private Key");
+        }
+
+        JceOpenSSLPKCS8EncryptorBuilder encryptorBuilder = new JceOpenSSLPKCS8EncryptorBuilder(
+                PKCS8Generator.PBE_SHA1_3DES);
+        encryptorBuilder.setPassword(privateKeyPassword.toCharArray());
+        OutputEncryptor oe = encryptorBuilder.build();
+        JcaPKCS8Generator gen = new JcaPKCS8Generator(privateKey, oe);
+
+        return gen.generate().getContent();
+    }
+
+    private static byte[] convertToPem(byte[] derKey) {
+        String pem = "-----BEGIN ENCRYPTED PRIVATE KEY-----\n"
+                + DatatypeConverter.printBase64Binary(derKey).replaceAll("(.{64})", "$1\n")
+                + "\n-----END ENCRYPTED PRIVATE KEY-----\n";
+        return pem.getBytes(StandardCharsets.UTF_8);
+    }
 }

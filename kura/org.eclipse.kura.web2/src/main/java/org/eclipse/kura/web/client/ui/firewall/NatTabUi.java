@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011, 2022 Eurotech and/or its affiliates and others
+ * Copyright (c) 2011, 2023 Eurotech and/or its affiliates and others
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -612,7 +612,7 @@ public class NatTabUi extends Composite implements Tab, ButtonBar.Listener {
             public List<EditorError> validate(Editor<String> editor, String value) {
                 List<EditorError> result = new ArrayList<>();
                 if (!NatTabUi.this.source.getText().trim().isEmpty()
-                        && !NatTabUi.this.source.getText().trim().matches(FieldType.NETWORK.getRegex())) {
+                        && !NatTabUi.this.source.getText().trim().matches(FieldType.IPV4_CIDR_NOTATION.getRegex())) {
                     result.add(new BasicEditorError(NatTabUi.this.source, value,
                             MSGS.firewallNatFormSourceNetworkErrorMessage()));
                 }
@@ -633,7 +633,7 @@ public class NatTabUi extends Composite implements Tab, ButtonBar.Listener {
             public List<EditorError> validate(Editor<String> editor, String value) {
                 List<EditorError> result = new ArrayList<>();
                 if (!NatTabUi.this.destination.getText().trim().isEmpty()
-                        && !NatTabUi.this.destination.getText().trim().matches(FieldType.NETWORK.getRegex())) {
+                        && !NatTabUi.this.destination.getText().trim().matches(FieldType.IPV4_CIDR_NOTATION.getRegex())) {
                     result.add(new BasicEditorError(NatTabUi.this.destination, value,
                             MSGS.firewallNatFormDestinationNetworkErrorMessage()));
                 }

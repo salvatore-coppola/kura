@@ -1,14 +1,15 @@
 /*******************************************************************************
- * Copyright (c) 2023 Eurotech and/or its affiliates and others
- * 
+ * Copyright (c) 2023, 2024 Eurotech and/or its affiliates and others
+ *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
  * which is available at https://www.eclipse.org/legal/epl-2.0/
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0
- * 
+ *
  * Contributors:
  *  Eurotech
+ *  Areti
  *******************************************************************************/
 package org.eclipse.kura.web.server.net2.configuration;
 
@@ -21,6 +22,7 @@ import org.eclipse.kura.net.wifi.WifiMode;
 import org.eclipse.kura.web.server.net2.utils.EnumsParser;
 import org.eclipse.kura.web.server.util.GwtServerUtil;
 import org.eclipse.kura.web.shared.GwtKuraException;
+import org.eclipse.kura.web.shared.model.Gwt8021xConfig;
 import org.eclipse.kura.web.shared.model.GwtModemInterfaceConfig;
 import org.eclipse.kura.web.shared.model.GwtNetIfConfigMode;
 import org.eclipse.kura.web.shared.model.GwtNetIfStatus;
@@ -28,13 +30,14 @@ import org.eclipse.kura.web.shared.model.GwtNetInterfaceConfig;
 import org.eclipse.kura.web.shared.model.GwtNetRouterMode;
 import org.eclipse.kura.web.shared.model.GwtWifiConfig;
 import org.eclipse.kura.web.shared.model.GwtWifiNetInterfaceConfig;
-import org.eclipse.kura.web.shared.model.GwtWifiSecurity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class NetworkConfigurationServicePropertiesBuilder {
 
     private static final Integer DEFAULT_WAN_PRIORITY = -1;
+    private static final Integer DEFAULT_MTU = 0;
+    private static final Integer DEFAULT_PROMISC = -1;
 
     private final GwtNetInterfaceConfig gwtConfig;
     private final NetworkConfigurationServiceProperties properties;
@@ -75,6 +78,8 @@ public class NetworkConfigurationServicePropertiesBuilder {
         // Manage GPS independently of device ip status
         setModemGpsProperties();
 
+        setAdvancedProperties();
+
         return this.properties.getProperties();
     }
 
@@ -97,9 +102,9 @@ public class NetworkConfigurationServicePropertiesBuilder {
 
         if (isWan) {
             if (Objects.nonNull(this.gwtConfig.getWanPriority())) {
-                this.properties.setIp4WanPriority(ifname, this.gwtConfig.getWanPriority());
+                this.properties.setIp4WanPriority(this.ifname, this.gwtConfig.getWanPriority());
             } else {
-                this.properties.setIp4WanPriority(ifname, DEFAULT_WAN_PRIORITY);
+                this.properties.setIp4WanPriority(this.ifname, DEFAULT_WAN_PRIORITY);
             }
 
             this.properties.setIp4DnsServers(this.ifname, this.gwtConfig.getDnsServers());
@@ -113,6 +118,7 @@ public class NetworkConfigurationServicePropertiesBuilder {
         if (isManual && isWan) {
             this.properties.setIp4Gateway(this.ifname, this.gwtConfig.getGateway());
         }
+
     }
 
     private void setIpv6Properties() {
@@ -133,7 +139,7 @@ public class NetworkConfigurationServicePropertiesBuilder {
             if (Objects.nonNull(this.gwtConfig.getIpv6WanPriority())) {
                 this.properties.setIp6WanPriority(this.ifname, this.gwtConfig.getIpv6WanPriority());
             } else {
-                this.properties.setIp6WanPriority(ifname, DEFAULT_WAN_PRIORITY);
+                this.properties.setIp6WanPriority(this.ifname, DEFAULT_WAN_PRIORITY);
             }
 
             this.properties.setIp6DnsServers(this.ifname, this.gwtConfig.getIpv6DnsServers());
@@ -215,8 +221,8 @@ public class NetworkConfigurationServicePropertiesBuilder {
 
         if (gwtWifiConfig.getPassword() != null) {
             if (GwtServerUtil.PASSWORD_PLACEHOLDER.equals(gwtWifiConfig.getPassword())
-                    && oldGwtNetInterfaceConfig instanceof GwtWifiNetInterfaceConfig) {
-                GwtWifiNetInterfaceConfig gwtWifiNetInterfaceConfig = (GwtWifiNetInterfaceConfig) oldGwtNetInterfaceConfig;
+                    && this.oldGwtNetInterfaceConfig instanceof GwtWifiNetInterfaceConfig) {
+                GwtWifiNetInterfaceConfig gwtWifiNetInterfaceConfig = (GwtWifiNetInterfaceConfig) this.oldGwtNetInterfaceConfig;
                 gwtWifiNetInterfaceConfig.setUnescaped(true);
 
                 GwtWifiConfig gwtApConfig = gwtWifiNetInterfaceConfig.getAccessPointWifiConfig();
@@ -246,12 +252,64 @@ public class NetworkConfigurationServicePropertiesBuilder {
 
     }
 
-    private void set8021xConfig() {
-        logger.error("setting 802-1x config");
-        this.properties.set8021xEap(this.ifname, this.gwtConfig.get8021xConfig().getEap());
-        this.properties.set8021xInnerAuth(this.ifname, this.gwtConfig.get8021xConfig().getInnerAuth());
-        this.properties.set8021xIdentity(this.ifname, this.gwtConfig.get8021xConfig().getUsername());
-        this.properties.set8021xPassword(this.ifname, this.gwtConfig.get8021xConfig().getPassword());
+    private void set8021xConfig() throws GwtKuraException {
+        if (this.gwtConfig.get8021xConfig() == null || !(this.gwtConfig instanceof GwtWifiNetInterfaceConfig)) {
+            return;
+        }
+
+        logger.info("setting 802-1x config");
+
+        if (this.gwtConfig.get8021xConfig().getEap() != null && !this.gwtConfig.get8021xConfig().getEap().isEmpty()) {
+            this.properties.set8021xEap(this.ifname, this.gwtConfig.get8021xConfig().getEap());
+        }
+
+        if (isValidStringProperty(this.gwtConfig.get8021xConfig().getInnerAuth())) {
+            this.properties.set8021xInnerAuth(this.ifname, this.gwtConfig.get8021xConfig().getInnerAuth());
+        }
+
+        if (isValidStringProperty(this.gwtConfig.get8021xConfig().getUsername())) {
+            this.properties.set8021xIdentity(this.ifname, this.gwtConfig.get8021xConfig().getUsername());
+        }
+
+        if (isValidStringProperty(this.gwtConfig.get8021xConfig().getPassword())) {
+            String password8021x = this.gwtConfig.get8021xConfig().getPassword();
+
+            if (GwtServerUtil.PASSWORD_PLACEHOLDER.equals(password8021x)
+                    && this.oldGwtNetInterfaceConfig instanceof GwtWifiNetInterfaceConfig) {
+                GwtWifiNetInterfaceConfig gwtWifiNetInterfaceConfig = (GwtWifiNetInterfaceConfig) this.oldGwtNetInterfaceConfig;
+
+                Gwt8021xConfig gwt8021xConfig = gwtWifiNetInterfaceConfig.get8021xConfig();
+
+                this.properties.set8021xPassword(this.ifname, gwt8021xConfig.getPassword());
+            } else {
+                GwtServerUtil.validateUserPassword(password8021x);
+                this.properties.set8021xPassword(this.ifname, password8021x);
+            }
+        }
+
+        set8021xCertificatesAndPublicPrivateKeyPairs();
+        logger.info("DONE - setting 802-1x config");
+    }
+
+    private boolean isValidStringProperty(String value) {
+        return value != null && !value.isEmpty();
+    }
+
+    private void set8021xCertificatesAndPublicPrivateKeyPairs() {
+        if (this.gwtConfig.get8021xConfig().getKeystorePid() != null) {
+            this.properties.set8021xKeystorePid(this.ifname, this.gwtConfig.get8021xConfig().getKeystorePid());
+        }
+
+        if (this.gwtConfig.get8021xConfig().getCaCertName() != null) {
+            this.properties.set8021xCaCertName(this.ifname, this.gwtConfig.get8021xConfig().getCaCertName());
+        }
+
+        if (this.gwtConfig.get8021xConfig().getPublicPrivateKeyPairName() != null) {
+            this.properties.set8021xPublicPrivateKeyPairName(this.ifname,
+                    this.gwtConfig.get8021xConfig().getPublicPrivateKeyPairName());
+            this.properties.set8021xClientCertName(this.ifname,
+                    this.gwtConfig.get8021xConfig().getPublicPrivateKeyPairName());
+        }
     }
 
     private void setWifiInfraProperties() {
@@ -265,8 +323,8 @@ public class NetworkConfigurationServicePropertiesBuilder {
 
         if (gwtWifiConfig.getPassword() != null) {
             if (GwtServerUtil.PASSWORD_PLACEHOLDER.equals(gwtWifiConfig.getPassword())
-                    && oldGwtNetInterfaceConfig instanceof GwtWifiNetInterfaceConfig) {
-                GwtWifiNetInterfaceConfig gwtWifiNetInterfaceConfig = (GwtWifiNetInterfaceConfig) oldGwtNetInterfaceConfig;
+                    && this.oldGwtNetInterfaceConfig instanceof GwtWifiNetInterfaceConfig) {
+                GwtWifiNetInterfaceConfig gwtWifiNetInterfaceConfig = (GwtWifiNetInterfaceConfig) this.oldGwtNetInterfaceConfig;
                 gwtWifiNetInterfaceConfig.setUnescaped(true);
 
                 GwtWifiConfig gwtStationConfig = gwtWifiNetInterfaceConfig.getStationWifiConfig();
@@ -326,9 +384,9 @@ public class NetworkConfigurationServicePropertiesBuilder {
 
             if (gwtModemConfig.getPassword() != null) {
                 if (GwtServerUtil.PASSWORD_PLACEHOLDER.equals(gwtModemConfig.getPassword())
-                        && oldGwtNetInterfaceConfig instanceof GwtModemInterfaceConfig) {
+                        && this.oldGwtNetInterfaceConfig instanceof GwtModemInterfaceConfig) {
 
-                    GwtModemInterfaceConfig gwtModemInterfaceConfig = (GwtModemInterfaceConfig) oldGwtNetInterfaceConfig;
+                    GwtModemInterfaceConfig gwtModemInterfaceConfig = (GwtModemInterfaceConfig) this.oldGwtNetInterfaceConfig;
                     gwtModemInterfaceConfig.setUnescaped(true);
 
                     this.properties.setModemPassword(this.ifname, gwtModemInterfaceConfig.getPassword());
@@ -344,7 +402,7 @@ public class NetworkConfigurationServicePropertiesBuilder {
             this.properties.setModemMaxFail(this.ifname, gwtModemConfig.getMaxFail());
             this.properties.setModemIdle(this.ifname, gwtModemConfig.getIdle());
             this.properties.setModemActiveFilter(this.ifname, gwtModemConfig.getActiveFilter());
-            this.properties.setModemLpcEchoInterval(ifname, gwtModemConfig.getLcpEchoInterval());
+            this.properties.setModemLpcEchoInterval(this.ifname, gwtModemConfig.getLcpEchoInterval());
             this.properties.setModemLpcEchoFailure(this.ifname, gwtModemConfig.getLcpEchoFailure());
             this.properties.setModemDiversityEnabled(this.ifname, gwtModemConfig.isDiversityEnabled());
             this.properties.setModemApn(this.ifname, gwtModemConfig.getApn());
@@ -361,6 +419,15 @@ public class NetworkConfigurationServicePropertiesBuilder {
 
             this.properties.setModemGpsEnabled(this.ifname, gwtModemConfig.isGpsEnabled());
         }
+    }
+
+    private void setAdvancedProperties() {
+        this.properties.setIp4Mtu(this.ifname,
+                Objects.nonNull(this.gwtConfig.getMtu()) ? this.gwtConfig.getMtu() : DEFAULT_MTU);
+        this.properties.setIp6Mtu(this.ifname,
+                Objects.nonNull(this.gwtConfig.getIpv6Mtu()) ? this.gwtConfig.getIpv6Mtu() : DEFAULT_MTU);
+        this.properties.setPromisc(this.ifname,
+        		Objects.nonNull(this.gwtConfig.getPromisc()) ? this.gwtConfig.getPromisc() : DEFAULT_PROMISC);
     }
 
     private static GwtNetInterfaceConfig getConfigsAndStatuses(String ifName) throws GwtKuraException, KuraException {

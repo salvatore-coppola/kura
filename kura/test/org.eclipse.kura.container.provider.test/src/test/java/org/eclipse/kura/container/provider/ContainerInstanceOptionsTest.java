@@ -1,5 +1,5 @@
 /*******************************************************************************
-  * Copyright (c) 2022 Eurotech and/or its affiliates and others
+  * Copyright (c) 2022, 2024 Eurotech and/or its affiliates and others
   *
   * This program and the accompanying materials are made
   * available under the terms of the Eclipse Public License 2.0
@@ -55,6 +55,8 @@ public class ContainerInstanceOptionsTest {
     private static final String DEFAULT_CONTAINER_MEMORY = "";
     private static final String DEFAULT_CONTAINER_CPUS = "";
     private static final String DEFAULT_CONTAINER_GPUS = "";
+    private static final String DEFAULT_CONTAINER_RUNTIME = "";
+    private static final String DEFAULT_ENFORCEMENT_DIGEST = "";
 
     private static final String CONTAINER_ENV = "container.env";
     private static final String CONTAINER_PORTS_INTERNAL = "container.ports.internal";
@@ -79,6 +81,8 @@ public class ContainerInstanceOptionsTest {
     private static final String CONTAINER_MEMORY = "container.memory";
     private static final String CONTAINER_CPUS = "container.cpus";
     private static final String CONTAINER_GPUS = "container.gpus";
+    private static final String CONTAINER_RUNTIME = "container.runtime";
+    private static final String ENFORCEMENT_DIGEST = "enforcement.digest";
 
     private Map<String, Object> properties;
 
@@ -725,6 +729,41 @@ public class ContainerInstanceOptionsTest {
         thenContainerGpusIs("all");
     }
 
+    @Test
+    public void testRuntimeOptionEmpty() {
+        givenDefaultProperties();
+        givenRuntimeProperty(null);
+        givenConfigurableGenericDockerServiceOptions();
+
+        whenGetContainerDescriptor();
+
+        thenContainerRuntimeIsEmpty();
+    }
+
+    @Test
+    public void testRuntimeOptionIsSet() {
+        givenDefaultProperties();
+        givenRuntimeProperty("coolRuntime");
+        givenConfigurableGenericDockerServiceOptions();
+
+        whenGetContainerDescriptor();
+
+        thenContainerRuntimeIsNotEmpty();
+        thenContainerRuntimeIs("coolRuntime");
+    }
+
+    @Test
+    public void testEnforcementDigest() {
+        givenDefaultProperties();
+        givenEnforcementDigestProperty("sha256:test");
+        givenConfigurableGenericDockerServiceOptions();
+
+        whenGetContainerDescriptor();
+
+        thenEnforcementDigestIsNotEmpty();
+        thenEnforcementDigestIs("sha256:test");
+    }
+
     private void testMemoryOption(String stringValue, Long longValue) {
         givenDefaultProperties();
         givenMemoryProperty(stringValue);
@@ -767,6 +806,8 @@ public class ContainerInstanceOptionsTest {
         this.properties.put(CONTAINER_MEMORY, DEFAULT_CONTAINER_MEMORY);
         this.properties.put(CONTAINER_CPUS, DEFAULT_CONTAINER_CPUS);
         this.properties.put(CONTAINER_GPUS, DEFAULT_CONTAINER_GPUS);
+        this.properties.put(CONTAINER_RUNTIME, DEFAULT_CONTAINER_RUNTIME);
+        this.properties.put(ENFORCEMENT_DIGEST, DEFAULT_ENFORCEMENT_DIGEST);
     }
 
     private void givenDifferentProperties() {
@@ -791,6 +832,8 @@ public class ContainerInstanceOptionsTest {
         this.newProperties.put(CONTAINER_ENTRY_POINT, "./test.py,-v,-m,--human-readable,,,");
         this.newProperties.put(CONTAINER_MEMORY, "100m");
         this.newProperties.put(CONTAINER_CPUS, "1.5");
+        this.newProperties.put(CONTAINER_RUNTIME, "myRuntime");
+        this.newProperties.put(ENFORCEMENT_DIGEST, "");
     }
 
     private void givenMemoryProperty(String memory) {
@@ -808,6 +851,18 @@ public class ContainerInstanceOptionsTest {
     private void givenGpusProperty(String gpus) {
         if (this.properties != null) {
             this.properties.put(CONTAINER_GPUS, gpus);
+        }
+    }
+
+    private void givenRuntimeProperty(String runtime) {
+        if (this.properties != null) {
+            this.properties.put(CONTAINER_RUNTIME, runtime);
+        }
+    }
+
+    private void givenEnforcementDigestProperty(String digest) {
+        if (this.properties != null) {
+            this.properties.put(ENFORCEMENT_DIGEST, digest);
         }
     }
 
@@ -1108,5 +1163,25 @@ public class ContainerInstanceOptionsTest {
 
     private void thenContainerGpusIs(String value) {
         assertEquals(this.containerDescriptor.getGpus().get(), value);
+    }
+
+    private void thenContainerRuntimeIsEmpty() {
+        assertFalse(this.containerDescriptor.getRuntime().isPresent());
+    }
+
+    private void thenContainerRuntimeIsNotEmpty() {
+        assertTrue(this.containerDescriptor.getRuntime().isPresent());
+    }
+
+    private void thenContainerRuntimeIs(String value) {
+        assertEquals(this.containerDescriptor.getRuntime().get(), value);
+    }
+
+    private void thenEnforcementDigestIsNotEmpty() {
+        assertTrue(this.containerDescriptor.getEnforcementDigest().isPresent());
+    }
+
+    private void thenEnforcementDigestIs(String value) {
+        assertEquals(this.containerDescriptor.getEnforcementDigest().get(), value);
     }
 }

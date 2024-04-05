@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011, 2020 Eurotech and/or its affiliates and others
+ * Copyright (c) 2011, 2024 Eurotech and/or its affiliates and others
  *
  *  This program and the accompanying materials are made
  *  available under the terms of the Eclipse Public License 2.0
@@ -413,14 +413,14 @@ JNIEXPORT void JNICALL Java_org_eclipse_kura_linux_usb_LinuxUdevNative_nativeHot
 							(*env)->CallVoidMethod(env, linuxUdevNative, LinuxUdevNativeCallback, eventType, UsbDeviceObject);
 						}
 					}
-					udev_device_unref(dev);
 				}
-			}
-			else {
+				udev_device_unref(dev);
+			} else {
 				printf("No Device from receive_device(). An error occured.\n");
 			}
 		}
 		usleep(250*1000);
 	}
 
+	udev_unref(udev);
 }

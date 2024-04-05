@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (c) 2011, 2023 Eurotech and/or its affiliates and others
+    Copyright (c) 2011, 2024 Eurotech and/or its affiliates and others
 
     This program and the accompanying materials are made
     available under the terms of the Eclipse Public License 2.0
@@ -20,7 +20,7 @@
 
     <groupId>org.eclipse.kura</groupId>
     <artifactId>examples</artifactId>
-    <version>5.4.0-SNAPSHOT</version>
+    <version>5.5.0-SNAPSHOT</version>
 
     <packaging>pom</packaging>
 
@@ -87,6 +87,7 @@
         <module>org.eclipse.kura.example.camel.quickstart</module>
         <module>org.eclipse.kura.example.camel.publisher</module>
         <module>org.eclipse.kura.example.camel.aggregation</module>
+        <module>org.eclipse.kura.example.container.signature.validation</module>
         <module>org.eclipse.kura.raspberrypi.sensehat</module>
         <module>org.eclipse.kura.raspberrypi.sensehat.example</module>
         <module>org.eclipse.kura.example.wire.logic.multiport.provider</module>
@@ -99,6 +100,7 @@
         <module>org.eclipse.kura.example.gpio.led</module>
         <module>org.eclipse.kura.example.tamper.detection</module>
         <module>org.eclipse.kura.example.rest.authentication.provider</module>
+        <module>org.eclipse.kura.example.identity.configuration.extension</module>
         <module>test</module>
     </modules>
 
@@ -116,7 +118,6 @@
                     -Dosgi.console=5002
                     -DbuildingWithTycho=true -Dosgi.locking=none
                     -Dds.showtrace=true -Djava.io.tmpdir=/tmp
-                    -Dorg.osgi.framework.storage=/tmp/osgi/framework_storage
                     -Dosgi.clean=true
                     -Dorg.eclipse.kura.mode=emulator
                     -Dkura.snapshots=${project.basedir}/target/
@@ -139,7 +140,6 @@
                     -Dosgi.console=5002
                     -DbuildingWithTycho=true -Dosgi.locking=none
                     -Dds.showtrace=true -Djava.io.tmpdir=/tmp
-                    -Dorg.osgi.framework.storage=/tmp/osgi/framework_storage
                     -Dosgi.clean=true
                     -Dorg.eclipse.kura.mode=emulator
                     -Dkura.snapshots=${project.basedir}/target/

@@ -74,7 +74,6 @@ import org.eclipse.kura.net.wifi.WifiRadioMode;
 import org.eclipse.kura.net.wifi.WifiSecurity;
 import org.eclipse.kura.system.SystemService;
 import org.eclipse.kura.usb.UsbDevice;
-import org.eclipse.kura.web.Console;
 import org.eclipse.kura.web.server.util.GwtServerUtil;
 import org.eclipse.kura.web.server.util.KuraExceptionHandler;
 import org.eclipse.kura.web.server.util.ServiceLocator;
@@ -103,8 +102,6 @@ import org.eclipse.kura.web.shared.model.GwtWifiNetInterfaceConfig;
 import org.eclipse.kura.web.shared.model.GwtWifiRadioMode;
 import org.eclipse.kura.web.shared.model.GwtWifiSecurity;
 import org.eclipse.kura.web.shared.model.GwtWifiWirelessMode;
-import org.eclipse.kura.web.shared.validator.PasswordStrengthValidators;
-import org.eclipse.kura.web.shared.validator.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -353,23 +350,23 @@ public class GwtNetworkServiceImpl {
                                 gwtWifiConfig.setDriver(wifiConfig.getDriver());
 
                                 // security
-                                switch(wifiConfig.getSecurity()){
-                                    case SECURITY_WPA:
-                                        gwtWifiConfig.setSecurity(GwtWifiSecurity.netWifiSecurityWPA.name());
-                                        break;
-                                    case SECURITY_WPA2:
-                                        gwtWifiConfig.setSecurity(GwtWifiSecurity.netWifiSecurityWPA2.name());
-                                        break;
-                                    case SECURITY_WPA_WPA2:
-                                        gwtWifiConfig.setSecurity(GwtWifiSecurity.netWifiSecurityWPA_WPA2.name());
-                                        break;
-                                    case SECURITY_WEP:
-                                        gwtWifiConfig.setSecurity(GwtWifiSecurity.netWifiSecurityWEP.name());
-                                        break;
-                                    case SECURITY_NONE:
-                                    default:
-                                        gwtWifiConfig.setSecurity(GwtWifiSecurity.netWifiSecurityNONE.name());
-                                        break;
+                                switch (wifiConfig.getSecurity()) {
+                                case SECURITY_WPA:
+                                    gwtWifiConfig.setSecurity(GwtWifiSecurity.netWifiSecurityWPA.name());
+                                    break;
+                                case SECURITY_WPA2:
+                                    gwtWifiConfig.setSecurity(GwtWifiSecurity.netWifiSecurityWPA2.name());
+                                    break;
+                                case SECURITY_WPA_WPA2:
+                                    gwtWifiConfig.setSecurity(GwtWifiSecurity.netWifiSecurityWPA_WPA2.name());
+                                    break;
+                                case SECURITY_WEP:
+                                    gwtWifiConfig.setSecurity(GwtWifiSecurity.netWifiSecurityWEP.name());
+                                    break;
+                                case SECURITY_NONE:
+                                default:
+                                    gwtWifiConfig.setSecurity(GwtWifiSecurity.netWifiSecurityNONE.name());
+                                    break;
                                 }
 
                                 if (wifiConfig.getPairwiseCiphers() == WifiCiphers.CCMP_TKIP) {
@@ -1302,12 +1299,12 @@ public class GwtNetworkServiceImpl {
         }
     }
 
-    public static List<String> getDhcpLeases() throws GwtKuraException {
+    public static List<String> getDhcpLeases(String interfaceName) throws GwtKuraException {
         List<String> dhcpLease = new ArrayList<>();
 
         NetworkAdminService nas = ServiceLocator.getInstance().getService(NetworkAdminService.class);
         try {
-            List<DhcpLease> leases = nas.getDhcpLeases();
+            List<DhcpLease> leases = nas.getDhcpLeases(interfaceName);
 
             for (DhcpLease dl : leases) {
                 GwtDhcpLease dhcp = new GwtDhcpLease();
@@ -1693,7 +1690,7 @@ public class GwtNetworkServiceImpl {
                 properties.put(wifiPassphrasePropName,
                         new Password(GwtSafeHtmlUtils.htmlUnescape(oldGwtWifiConfig.get().getPassword())));
             } else {
-                throw new GwtKuraException(GwtKuraErrorCode.ILLEGAL_ARGUMENT);
+                throw new GwtKuraException(GwtKuraErrorCode.PASSWORD_NEVER_SET);
             }
 
         } else if (passKey != null && mode.equals(GwtWifiWirelessMode.netWifiWirelessModeAccessPoint.name())) {

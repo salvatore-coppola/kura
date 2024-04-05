@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2023 Eurotech and/or its affiliates and others
+ * Copyright (c) 2023, 2024 Eurotech and/or its affiliates and others
  * 
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -15,6 +15,7 @@ package org.eclipse.kura.util.useradmin;
 import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Dictionary;
 import java.util.HashSet;
 import java.util.Objects;
@@ -89,7 +90,29 @@ public class UserAdminHelper {
         }
     }
 
-    @SuppressWarnings("unchecked")
+    public Set<String> getIdentityPermissions(final String name) {
+        final String userRoleName = getUserRoleName(name);
+        final Role role = userAdmin.getRole(userRoleName);
+
+        if (!(role instanceof User)) {
+            return Collections.emptySet();
+        }
+
+        final Set<String> result = new HashSet<>();
+
+        foreachPermission((permission, group) -> {
+
+            final Role[] members = group.getMembers();
+
+            if (members != null && Arrays.stream(members).anyMatch(r -> r.getName().equals(userRoleName))) {
+
+                result.add(getBaseName(group));
+            }
+        });
+
+        return result;
+    }
+
     public void changeUserPassword(final String username, final String userPassword) throws AuthenticationException {
         final User user = getUser(username)
                 .orElseThrow(() -> new AuthenticationException(AuthenticationException.Reason.USER_NOT_FOUND));
@@ -123,7 +146,8 @@ public class UserAdminHelper {
     }
 
     public void createUser(final String userName) {
-        getOrCreateUser(getUserRoleName(userName));
+        User createdUser = getOrCreateUser(userName);
+        Objects.requireNonNull(createdUser, "Could not create user " + userName);
     }
 
     public void deleteUser(final String userName) {
@@ -207,8 +231,28 @@ public class UserAdminHelper {
         }
     }
 
+    public Optional<Group> getPermission(final String name) {
+        final String roleName = getPermissionRoleName(name);
+
+        final Role role = userAdmin.getRole(roleName);
+
+        if (!(role instanceof Group)) {
+            return Optional.empty();
+        }
+
+        return Optional.of((Group) role);
+    }
+
     public Group getOrCreatePermission(final String name) {
         return getOrCreateRole(Group.class, getPermissionRoleName(name));
+    }
+
+    public void deletePremission(final String name) {
+        final Role role = this.userAdmin.getRole(getPermissionRoleName(name));
+
+        if (role instanceof Group) {
+            this.userAdmin.removeRole(role.getName());
+        }
     }
 
     public User getOrCreateUser(final String name) {
@@ -289,6 +333,8 @@ public class UserAdminHelper {
     }
 
     public static class AuthenticationException extends Exception {
+
+        private static final long serialVersionUID = -8534499595655286448L;
 
         public enum Reason {
             USER_NOT_FOUND,

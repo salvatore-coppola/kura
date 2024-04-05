@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2023 Eurotech and/or its affiliates and others
+ * Copyright (c) 2023, 2024 Eurotech and/or its affiliates and others
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -15,19 +15,42 @@ package org.eclipse.kura.nm.configuration;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Optional;
+
+import javax.crypto.EncryptedPrivateKeyInfo;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
 
 import org.eclipse.kura.configuration.Password;
 import org.eclipse.kura.nm.NetworkProperties;
+import org.eclipse.kura.nm.SemanticVersion;
 import org.eclipse.kura.nm.enums.NMDeviceType;
 import org.freedesktop.dbus.types.UInt32;
 import org.freedesktop.dbus.types.Variant;
@@ -37,20 +60,20 @@ import org.mockito.Mockito;
 
 public class NMSettingsConverterTest {
 
-    Map<String, Variant<?>> internalComparatorMap = new HashMap<>();
-    Map<String, Variant<?>> resultMap;
+    private final static String PEM_PRIVATE_KEY = "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDFWXYxR1zfnzpeO1771SosgCRhzyANqqxH600iLajJww+o1QeKR5n08INKBBNRRW6bCJpPNA5XNLl9ucnu/Bl2CIZ/NeAyFHtau+8kYrkT5wp/g2FCKIPqNAOUik2N7rEPB6FPm0FTWjlBUz2qRIQ7Szdqbw6ZXgK2Zn15MPb+CLjum2biqv1YPxaFnrPhHO2APVSu+xYEB90byFgGWEfL8qY+BAycVmNxPzq4C3LRdJwvCUvsMhcnNhpN0ZHg0ujAFEeQLZXm3SXZGvAQat5IAZLHxIQbUSeJjt1H2yWwkxrNoSMpwOGyAiUTiPAKwpfT2ab1cJZXILWF1+QmNC3tAgMBAAECggEABCT7CHMqDiU9y9KANl1HIfwc1PWk6OSQykndKtLmOvdUx+kcVTdoJoLpfT6l7dawLl/Xj3ILePLXP3ST6jjRVYpl+l9opPjO09kV5feCQ7kNP+ovknzYzkC/EhSsoEbAWqGbjET2Gll+MAIsdhbVAi5mhA3Nb4caNgHIyxsTMXHidl/BwaxkLyv4RWOiPxQPA1XFCTGX9b3KcIDte8hRvEuK7mD6V6VKMm0ArxJgJXtOQ/dhH4Jhra/RH3Y3NjszgP2OW18z71/Yeud18ykNNgzrX2EkXAYXulfa9O4Yfi/k3TttP3QxItbRD+VetZCvQj3jHaG1Ly3dJRGhC2xaOQKBgQD+R7g8FHxjihpJt3bSZNClftRl3bY/4jRV7MBXNC7XA9zj3zNp5R6JCV9PAI5CyY1lhOq+pHfDggufcQZlSC6h4n6b0rj+b2vxbNBy8efQUDtgQw7QfunPGYs+OHPpNK7JGYUezbIw0PV7ahxiD6ncG6DibnNInEeyBC5AJ803LwKBgQDGryr1wOE15Q/lH+XPPf+cclDC/vKpp3Fm4btzSWrOyQWh+yxKGd5dmeRk0h2cDp92jOAHNjLVA0ejvcQUIwew+DYRnXJe/YDvOijFWW+LDRdm/oPcqtjzrfFd1ROQRSeEB0R/BF4m1EDcLligs3N3pWiBEWs/HYdJuIRhK2PlowKBgDh4AOgGvKD2WGQqhA6xKMy3379Hf2OsfmbejtBO3GAPkYxhUu+fXCqelDXdL7qRO/9hhygTKi2WwbIEzaDMaN62h9te7opCgDw7KAd+xTYzuxvjiHSw2oeNaqjErKkLdA1gx3lRwNKqdPmVVPxJ8jTZRd9DHALyAdH8r7C7pg0tAoGBAJIc1/cK9ZRw9BOINbUG3yfqWcJNQ5/IZ/lFIFlUMJwJ8X6B/Lwx8fnb5r7OVsAhcNv6Ffa3wQIt+01LjRtR96IJp5mktCtvOpazqrAXaZRU+FTh748khZAO52YeANkkQj8yKQlP6P2dMmW6H6tuzQe8OPJSIRC1YnywmYnsIvcJAoGAHLoik8+9ej4zcFnO2xTve6cvEym/sISnlE5GLC2sYomG6cxDnMq4DWL3tVBbBnOCkany+p0oWuhSGsbnEWVDHvA3Wo3uuY7NdL3iTPhIHbZ+0AkgjHT99LYZHr4lhTJP8XU6UKT15aDJyljvRFuWrcHKrQ18VSiIwOQoQzbAVAc=";
 
-    Map<String, Map<String, Variant<?>>> internalComparatorAllSettingsMap = new HashMap<>();
-    Map<String, Map<String, Variant<?>>> resultAllSettingsMap = new HashMap<>();
+    private Map<String, Variant<?>> resultMap;
 
-    Map<String, Object> internetNetworkPropertiesInstanciationMap = new HashMap<>();
+    private Map<String, Map<String, Variant<?>>> internalComparatorAllSettingsMap = new HashMap<>();
+    private Map<String, Map<String, Variant<?>>> resultAllSettingsMap = new HashMap<>();
 
-    NetworkProperties networkProperties;
-    Connection mockedConnection;
+    private Map<String, Object> internetNetworkPropertiesInstanciationMap = new HashMap<>();
 
-    Boolean hasNoSuchElementExceptionBeenThrown = false;
-    Boolean hasAnIllegalArgumentExceptionThrown = false;
-    Boolean hasAGenericExecptionBeenThrown = false;
+    private NetworkProperties networkProperties;
+    private Connection mockedConnection;
+
+    private Exception occurredException;
+    private SemanticVersion nmVersion = SemanticVersion.parse("1.40");
 
     private static final List<Byte> IP6_BYTE_ARRAY_ADDRESS = Arrays
             .asList(new Byte[] { 32, 1, 72, 96, 72, 96, 0, 0, 0, 0, 0, 0, 0, 0, -120, 68 });
@@ -60,28 +83,28 @@ public class NMSettingsConverterTest {
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
-        thenNoSuchElementExceptionThrown();
+        thenExceptionOccurred(NoSuchElementException.class);
     }
 
     @Test
     public void buildIpv4SettingsShouldThrowWhenGivenEmptyMap() {
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
         whenBuildIpv4SettingsIsRunWith(this.networkProperties, "wlan0");
-        thenNoSuchElementExceptionThrown();
+        thenExceptionOccurred(NoSuchElementException.class);
     }
 
     @Test
     public void build80211WirelessSettingsShouldThrowErrorWhenGivenEmptyMap() {
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
         whenBuild80211WirelessSettingsIsRunWith(this.networkProperties, "wlan0");
-        thenNoSuchElementExceptionThrown();
+        thenExceptionOccurred(NoSuchElementException.class);
     }
 
     @Test
     public void build80211WirelessSecuritySettingsShouldThrowWhenGivenEmptyMap() {
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
         whenBuild80211WirelessSecuritySettingsIsRunWith(this.networkProperties, "wlan0");
-        thenNoSuchElementExceptionThrown();
+        thenExceptionOccurred(NoSuchElementException.class);
     }
 
     @Test
@@ -91,7 +114,7 @@ public class NMSettingsConverterTest {
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
         whenBuildIpv4SettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
 
     @Test
@@ -101,7 +124,7 @@ public class NMSettingsConverterTest {
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
         whenBuildIpv4SettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
 
     @Test
@@ -111,7 +134,7 @@ public class NMSettingsConverterTest {
 
         whenBuildIpv4SettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("method", "disabled");
         thenResultingMapNotContains("ignore-auto-dns");
         thenResultingMapNotContains("ignore-auto-routes");
@@ -129,7 +152,7 @@ public class NMSettingsConverterTest {
 
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
         whenBuildIpv4SettingsIsRunWith(this.networkProperties, "wlan0");
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
 
         thenResultingMapContains("method", "auto");
         thenResultingMapNotContains("ignore-auto-dns");
@@ -149,7 +172,7 @@ public class NMSettingsConverterTest {
 
         whenBuildIpv4SettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("method", "manual");
         thenResultingMapContains("address-data", buildAddressDataWith("192.168.0.12", new UInt32(25)));
         thenResultingMapContains("dns", new Variant<>(Arrays.asList(new UInt32(16843009)), "au").getValue());
@@ -166,7 +189,7 @@ public class NMSettingsConverterTest {
 
         whenBuildIpv4SettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("method", "auto");
         thenResultingMapContains("ignore-auto-dns", true);
         thenResultingMapContains("ignore-auto-routes", true);
@@ -185,7 +208,7 @@ public class NMSettingsConverterTest {
 
         whenBuildIpv4SettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("method", "manual");
         thenResultingMapContains("address-data", buildAddressDataWith("192.168.0.12", new UInt32(25)));
         thenResultingMapContains("ignore-auto-dns", true);
@@ -203,7 +226,7 @@ public class NMSettingsConverterTest {
 
         whenBuildIpv4SettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("method", "auto");
         thenResultingMapContains("route-metric", new Variant<>(new Long(30)).getValue());
     }
@@ -217,7 +240,7 @@ public class NMSettingsConverterTest {
 
         whenBuildIpv4SettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("method", "auto");
         thenResultingMapContains("ignore-auto-dns", true);
         thenResultingMapContains("ignore-auto-routes", true);
@@ -230,9 +253,9 @@ public class NMSettingsConverterTest {
         givenMapWith("net.interface.wlan0.config.ip6.status", "netIPv6StatusEnabledWAN");
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
 
-        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0");
+        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0", this.nmVersion);
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
 
     @Test
@@ -241,9 +264,9 @@ public class NMSettingsConverterTest {
         givenMapWith("net.interface.wlan0.config.ip6.status", "netIPv6StatusEnabledWAN");
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
 
-        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0");
+        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0", this.nmVersion);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("method", "auto");
         thenResultingMapNotContains("ignore-auto-dns");
     }
@@ -254,9 +277,9 @@ public class NMSettingsConverterTest {
         givenMapWith("net.interface.wlan0.config.ip6.status", "netIPv6StatusEnabledWAN");
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
 
-        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0");
+        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0", this.nmVersion);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("method", "auto");
     }
 
@@ -266,9 +289,9 @@ public class NMSettingsConverterTest {
         givenMapWith("net.interface.wlan0.config.ip6.status", "netIPv6StatusEnabledWAN");
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
 
-        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0");
+        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0", this.nmVersion);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("method", "dhcp");
     }
 
@@ -282,9 +305,9 @@ public class NMSettingsConverterTest {
         givenMapWith("net.interface.wlan0.config.ip6.gateway", "fe80::eed:f0a1:d03a:1");
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
 
-        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0");
+        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0", this.nmVersion);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("method", "manual");
         thenResultingMapContains("address-data", buildAddressDataWith("fe80::eed:f0a1:d03a:1028", new UInt32(25)));
         thenResultingMapContains("dns", Arrays.asList(IP6_BYTE_ARRAY_ADDRESS));
@@ -299,9 +322,9 @@ public class NMSettingsConverterTest {
         givenMapWith("net.interface.wlan0.config.ip6.status", "netIPv6StatusEnabledLAN");
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
 
-        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0");
+        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0", this.nmVersion);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("method", "auto");
         thenResultingMapContains("ignore-auto-dns", true);
         thenResultingMapContains("ignore-auto-routes", true);
@@ -318,9 +341,9 @@ public class NMSettingsConverterTest {
         givenMapWith("net.interface.wlan0.config.ip6.gateway", "fe80::eed:f0a1:d03a:1");
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
 
-        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0");
+        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0", this.nmVersion);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("method", "manual");
         thenResultingMapContains("address-data", buildAddressDataWith("fe80::eed:f0a1:d03a:1028", new UInt32(25)));
         thenResultingMapContains("ignore-auto-dns", true);
@@ -335,9 +358,9 @@ public class NMSettingsConverterTest {
         givenMapWith("net.interface.wlan0.config.ip6.privacy", "netIPv6PrivacyDisabled");
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
 
-        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0");
+        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0", this.nmVersion);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("method", "auto");
         thenResultingMapContains("addr-gen-mode", 0);
         thenResultingMapContains("ip6-privacy", 0);
@@ -351,9 +374,9 @@ public class NMSettingsConverterTest {
         givenMapWith("net.interface.wlan0.config.ip6.privacy", "netIPv6PrivacyEnabledPubAdd");
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
 
-        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0");
+        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0", this.nmVersion);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("method", "auto");
         thenResultingMapContains("addr-gen-mode", 1);
         thenResultingMapContains("ip6-privacy", 1);
@@ -367,9 +390,9 @@ public class NMSettingsConverterTest {
         givenMapWith("net.interface.wlan0.config.ip6.privacy", "netIPv6PrivacyEnabledTempAdd");
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
 
-        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0");
+        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0", this.nmVersion);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("method", "auto");
         thenResultingMapContains("addr-gen-mode", 1);
         thenResultingMapContains("ip6-privacy", 2);
@@ -383,9 +406,9 @@ public class NMSettingsConverterTest {
         givenMapWith("net.interface.wlan0.config.ip6.privacy", "netIPv6PrivacyEnabledTempAdd");
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
 
-        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0");
+        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0", this.nmVersion);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("method", "disabled");
         thenResultingMapNotContains("addr-gen-mode");
         thenResultingMapNotContains("ip6-privacy");
@@ -399,9 +422,9 @@ public class NMSettingsConverterTest {
         givenMapWith("net.interface.wlan0.config.ip6.privacy", "netIPv6PrivacyEnabledTempAdd");
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
 
-        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0");
+        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0", this.nmVersion);
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
 
     @Test
@@ -412,9 +435,9 @@ public class NMSettingsConverterTest {
         givenMapWith("net.interface.wlan0.config.ip6.privacy", "WrongPrivacy");
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
 
-        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0");
+        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0", this.nmVersion);
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
 
     @Test
@@ -427,9 +450,9 @@ public class NMSettingsConverterTest {
         givenMapWith("net.interface.wlan0.config.ip6.gateway", "fe80::eed:f0a1:d03a:1");
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
 
-        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0");
+        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0", this.nmVersion);
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
 
     @Test
@@ -442,9 +465,61 @@ public class NMSettingsConverterTest {
         givenMapWith("net.interface.wlan0.config.ip6.gateway", "fe80::eed:f0a1:d03a:1");
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
 
-        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0");
+        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0", this.nmVersion);
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void buildIpv6SettingsShouldHaveMtuWhenSupported() {
+        givenMapWith("net.interface.wlan0.config.ip6.address.method", "netIPv6MethodAuto");
+        givenMapWith("net.interface.wlan0.config.ip6.status", "netIPv6StatusEnabledWAN");
+        givenMapWith("net.interface.wlan0.config.ip6.mtu", 2345);
+        givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
+        givenNetworkManagerVersion("1.40.18");
+
+        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0", this.nmVersion);
+
+        thenNoExceptionOccurred();
+        thenResultingMapContains("mtu", new UInt32(2345));
+    }
+
+    @Test
+    public void buildIpv6SettingsShouldNotHaveMtuWhenNotSupported() {
+        givenMapWith("net.interface.wlan0.config.ip6.address.method", "netIPv6MethodAuto");
+        givenMapWith("net.interface.wlan0.config.ip6.status", "netIPv6StatusEnabledWAN");
+        givenMapWith("net.interface.wlan0.config.ip6.mtu", 3456);
+        givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
+        givenNetworkManagerVersion("1.22.10");
+
+        whenBuildIpv6SettingsIsRunWith(this.networkProperties, "wlan0", this.nmVersion);
+
+        thenNoExceptionOccurred();
+        thenResultingMapNotContains("mtu");
+    }
+
+    @Test
+    public void buildEthernetSettingsShouldHavePromiscWhenSupported() {
+        givenMapWith("net.interface.eth0.config.promisc", -1);
+        givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
+        givenNetworkManagerVersion("1.32");
+
+        whenBuildEthernetSettingsIsRunWith(networkProperties, "eth0", nmVersion);
+
+        thenNoExceptionOccurred();
+        thenResultingMapContains("accept-all-mac-addresses", -1);
+    }
+
+    @Test
+    public void buildEthernetSettingsShouldNotHavePromiscWhenNotSupported() {
+        givenMapWith("net.interface.eth0.config.promisc", 1);
+        givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
+        givenNetworkManagerVersion("1.31");
+
+        whenBuildEthernetSettingsIsRunWith(networkProperties, "eth0", nmVersion);
+
+        thenNoExceptionOccurred();
+        thenResultingMapNotContains("accept-all-mac-addresses");
     }
 
     @Test
@@ -453,7 +528,7 @@ public class NMSettingsConverterTest {
 
         whenBuild8021xSettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoSuchElementExceptionThrown();
+        thenExceptionOccurred(NoSuchElementException.class);
     }
 
     @Test
@@ -463,7 +538,7 @@ public class NMSettingsConverterTest {
 
         whenBuild8021xSettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
 
     @Test
@@ -474,7 +549,7 @@ public class NMSettingsConverterTest {
 
         whenBuild8021xSettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
 
     @Test
@@ -487,7 +562,7 @@ public class NMSettingsConverterTest {
 
         whenBuild8021xSettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
 
         thenResultingMapContainsArray("eap", new Variant<>(new String[] { "ttls" }).getValue());
         thenResultingMapContains("phase2-auth", "mschapv2");
@@ -504,24 +579,24 @@ public class NMSettingsConverterTest {
         givenMapWith("net.interface.wlan0.config.802-1x.eap", "Kura8021xEapTtls");
         givenMapWith("net.interface.wlan0.config.802-1x.innerAuth", "Kura8021xInnerAuthMschapv2");
         givenMapWith("net.interface.wlan0.config.802-1x.anonymous-identity", "anonymous-identity-test-var");
-        givenMapWith("net.interface.wlan0.config.802-1x.ca-cert", "binary ca cert");
-        givenMapWith("net.interface.wlan0.config.802-1x.ca-cert-password", new Password("secure-password"));
+        givenMapWith("net.interface.wlan0.config.802-1x.ca-cert-name",
+                buildMockedCertificateWithCert("binary ca cert"));
         givenMapWith("net.interface.wlan0.config.802-1x.identity", "example-user-name");
         givenMapWith("net.interface.wlan0.config.802-1x.password", new Password("secure-test-password-123!@#"));
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
 
         whenBuild8021xSettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
 
         thenResultingMapContainsArray("eap", new Variant<>(new String[] { "ttls" }).getValue());
         thenResultingMapContains("phase2-auth", "mschapv2");
         thenResultingMapContains("anonymous-identity", "anonymous-identity-test-var");
         thenResultingMapContainsBytes("ca-cert", "binary ca cert");
-        thenResultingMapContains("ca-cert-password", "secure-password");
         thenResultingMapContains("identity", "example-user-name");
         thenResultingMapContains("password", "secure-test-password-123!@#");
 
+        thenResultingMapNotContains("ca-cert-password");
     }
 
     @Test
@@ -534,23 +609,24 @@ public class NMSettingsConverterTest {
 
         whenBuild8021xSettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
 
         thenResultingMapContainsArray("eap", new Variant<>(new String[] { "peap" }).getValue());
-        thenResultingMapNotContains("anonymous-identity");
-        thenResultingMapNotContains("ca-cert");
-        thenResultingMapNotContains("ca-cert-password");
         thenResultingMapContains("phase2-auth", "mschapv2");
         thenResultingMapContains("identity", "example-user-name");
         thenResultingMapContains("password", "secure-test-password-123!@#");
+
+        thenResultingMapNotContains("anonymous-identity");
+        thenResultingMapNotContains("ca-cert");
+        thenResultingMapNotContains("ca-cert-password");
     }
 
     @Test
     public void build8021xSettingsShouldWorkWithPeapAndMschapV2AndCertificates() {
         givenMapWith("net.interface.wlan0.config.802-1x.eap", "Kura8021xEapPeap");
         givenMapWith("net.interface.wlan0.config.802-1x.anonymous-identity", "anonymous-identity-test-var");
-        givenMapWith("net.interface.wlan0.config.802-1x.ca-cert", "binary ca cert");
-        givenMapWith("net.interface.wlan0.config.802-1x.ca-cert-password", new Password("secure-password"));
+        givenMapWith("net.interface.wlan0.config.802-1x.ca-cert-name",
+                buildMockedCertificateWithCert("binary ca cert"));
         givenMapWith("net.interface.wlan0.config.802-1x.innerAuth", "Kura8021xInnerAuthMschapv2");
         givenMapWith("net.interface.wlan0.config.802-1x.identity", "example-user-name");
         givenMapWith("net.interface.wlan0.config.802-1x.password", new Password("secure-test-password-123!@#"));
@@ -558,15 +634,16 @@ public class NMSettingsConverterTest {
 
         whenBuild8021xSettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
 
         thenResultingMapContainsArray("eap", new Variant<>(new String[] { "peap" }).getValue());
         thenResultingMapContains("anonymous-identity", "anonymous-identity-test-var");
         thenResultingMapContainsBytes("ca-cert", "binary ca cert");
-        thenResultingMapContains("ca-cert-password", "secure-password");
         thenResultingMapContains("phase2-auth", "mschapv2");
         thenResultingMapContains("identity", "example-user-name");
         thenResultingMapContains("password", "secure-test-password-123!@#");
+
+        thenResultingMapNotContains("ca-cert-password");
     }
 
     @Test
@@ -575,7 +652,7 @@ public class NMSettingsConverterTest {
 
         whenBuild8021xSettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoSuchElementExceptionThrown();
+        thenExceptionOccurred(NoSuchElementException.class);
     }
 
     @Test
@@ -583,24 +660,119 @@ public class NMSettingsConverterTest {
         givenMapWith("net.interface.wlan0.config.802-1x.eap", "Kura8021xEapTls");
         givenMapWith("net.interface.wlan0.config.802-1x.innerAuth", "Kura8021xInnerAuthNone");
         givenMapWith("net.interface.wlan0.config.802-1x.identity", "username@email.com");
-        givenMapWith("net.interface.wlan0.config.802-1x.ca-cert", "binary ca cert");
-        givenMapWith("net.interface.wlan0.config.802-1x.client-cert", "binary client cert");
-        givenMapWith("net.interface.wlan0.config.802-1x.private-key", "binary private key");
-        givenMapWith("net.interface.wlan0.config.802-1x.private-key-password", new Password("secure-password"));
+        givenMapWith("net.interface.wlan0.config.802-1x.ca-cert-name",
+                buildMockedCertificateWithCert("binary ca cert"));
+        givenMapWith("net.interface.wlan0.config.802-1x.client-cert-name",
+                buildMockedCertificateWithCert("binary client cert"));
+        givenMapWith("net.interface.wlan0.config.802-1x.private-key-name", buildMockPrivateKeyWith(PEM_PRIVATE_KEY));
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
 
         whenBuild8021xSettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
 
         thenResultingMapContainsArray("eap", new Variant<>(new String[] { "tls" }).getValue());
         thenResultingMapNotContains("phase2-auth");
         thenResultingMapContains("identity", "username@email.com");
         thenResultingMapContainsBytes("ca-cert", "binary ca cert");
         thenResultingMapContainsBytes("client-cert", "binary client cert");
-        thenResultingMapContainsBytes("private-key", "binary private key");
-        thenResultingMapContains("private-key-password", "secure-password");
+        thenResultingMapContains("private-key-password", "sOPM6ph9zBENU0rrOiZhIAk8wn26W8qj0r+DBVu6Zbk=");
+        thenResultingMapContainsEncryptedPrivateKey("private-key", "sOPM6ph9zBENU0rrOiZhIAk8wn26W8qj0r+DBVu6Zbk=",
+                PEM_PRIVATE_KEY);
 
+        thenResultingMapNotContains("ca-cert-password");
+        thenResultingMapNotContains("client-cert-password");
+    }
+
+    @Test
+    public void build8021xSettingsShouldThrowWithTlsWithNullPrivateKey() {
+        givenMapWith("net.interface.wlan0.config.802-1x.eap", "Kura8021xEapTls");
+        givenMapWith("net.interface.wlan0.config.802-1x.innerAuth", "Kura8021xInnerAuthNone");
+        givenMapWith("net.interface.wlan0.config.802-1x.identity", "username@email.com");
+        givenMapWith("net.interface.wlan0.config.802-1x.ca-cert-name",
+                buildMockedCertificateWithCert("binary ca cert"));
+        givenMapWith("net.interface.wlan0.config.802-1x.client-cert-name",
+                buildMockedCertificateWithCert("binary client cert"));
+        givenMapWith("net.interface.wlan0.config.802-1x.private-key-name", null);
+        givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
+
+        whenBuild8021xSettingsIsRunWith(this.networkProperties, "wlan0");
+
+        thenExceptionOccurred(NoSuchElementException.class);
+    }
+
+    @Test
+    public void build8021xSettingsShouldThrowWithTlsWithWrongTypePrivateKey() {
+        givenMapWith("net.interface.wlan0.config.802-1x.eap", "Kura8021xEapTls");
+        givenMapWith("net.interface.wlan0.config.802-1x.innerAuth", "Kura8021xInnerAuthNone");
+        givenMapWith("net.interface.wlan0.config.802-1x.identity", "username@email.com");
+        givenMapWith("net.interface.wlan0.config.802-1x.ca-cert-name",
+                buildMockedCertificateWithCert("binary ca cert"));
+        givenMapWith("net.interface.wlan0.config.802-1x.client-cert-name",
+                buildMockedCertificateWithCert("binary client cert"));
+        givenMapWith("net.interface.wlan0.config.802-1x.private-key-name", "");
+        givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
+
+        whenBuild8021xSettingsIsRunWith(this.networkProperties, "wlan0");
+
+        thenExceptionOccurred(NoSuchElementException.class);
+    }
+
+    @Test
+    public void build8021xSettingsShouldWorkWithTlsWithNullCACert() {
+        givenMapWith("net.interface.wlan0.config.802-1x.eap", "Kura8021xEapTls");
+        givenMapWith("net.interface.wlan0.config.802-1x.innerAuth", "Kura8021xInnerAuthNone");
+        givenMapWith("net.interface.wlan0.config.802-1x.identity", "username@email.com");
+        givenMapWith("net.interface.wlan0.config.802-1x.ca-cert-name", null);
+        givenMapWith("net.interface.wlan0.config.802-1x.client-cert-name",
+                buildMockedCertificateWithCert("binary client cert"));
+        givenMapWith("net.interface.wlan0.config.802-1x.private-key-name", buildMockPrivateKeyWith(PEM_PRIVATE_KEY));
+        givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
+
+        whenBuild8021xSettingsIsRunWith(this.networkProperties, "wlan0");
+
+        thenNoExceptionOccurred();
+
+        thenResultingMapContainsArray("eap", new Variant<>(new String[] { "tls" }).getValue());
+        thenResultingMapContains("identity", "username@email.com");
+        thenResultingMapContainsBytes("client-cert", "binary client cert");
+        thenResultingMapContains("private-key-password", "sOPM6ph9zBENU0rrOiZhIAk8wn26W8qj0r+DBVu6Zbk=");
+        thenResultingMapContainsEncryptedPrivateKey("private-key", "sOPM6ph9zBENU0rrOiZhIAk8wn26W8qj0r+DBVu6Zbk=",
+                PEM_PRIVATE_KEY);
+
+        thenResultingMapNotContains("phase2-auth");
+        thenResultingMapNotContains("ca-cert");
+        thenResultingMapNotContains("ca-cert-password");
+        thenResultingMapNotContains("client-cert-password");
+    }
+
+    @Test
+    public void build8021xSettingsShouldWorkWithTlsWithWrongTypeCACert() {
+        givenMapWith("net.interface.wlan0.config.802-1x.eap", "Kura8021xEapTls");
+        givenMapWith("net.interface.wlan0.config.802-1x.innerAuth", "Kura8021xInnerAuthNone");
+        givenMapWith("net.interface.wlan0.config.802-1x.identity", "username@email.com");
+        givenMapWith("net.interface.wlan0.config.802-1x.ca-cert-name",
+                new Password("When I grow up I want to be a certificate"));
+        givenMapWith("net.interface.wlan0.config.802-1x.client-cert-name",
+                buildMockedCertificateWithCert("binary client cert"));
+        givenMapWith("net.interface.wlan0.config.802-1x.private-key-name", buildMockPrivateKeyWith(PEM_PRIVATE_KEY));
+        givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
+
+        whenBuild8021xSettingsIsRunWith(this.networkProperties, "wlan0");
+
+        thenNoExceptionOccurred();
+
+        thenResultingMapContainsArray("eap", new Variant<>(new String[] { "tls" }).getValue());
+        thenResultingMapContains("identity", "username@email.com");
+        thenResultingMapContainsBytes("client-cert", "binary client cert");
+        thenResultingMapContains("private-key-password", "sOPM6ph9zBENU0rrOiZhIAk8wn26W8qj0r+DBVu6Zbk=");
+        thenResultingMapContainsEncryptedPrivateKey("private-key", "sOPM6ph9zBENU0rrOiZhIAk8wn26W8qj0r+DBVu6Zbk=",
+                PEM_PRIVATE_KEY);
+
+        thenResultingMapNotContains("phase2-auth");
+        thenResultingMapNotContains("ca-cert");
+        thenResultingMapNotContains("ca-cert-password");
+        thenResultingMapNotContains("client-cert-password");
     }
 
     @Test
@@ -614,7 +786,7 @@ public class NMSettingsConverterTest {
 
         whenBuild80211WirelessSettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("mode", "infrastructure");
         thenResultingMapContainsBytes("ssid", "ssidtest");
         thenResultingMapContains("band", "a");
@@ -632,7 +804,7 @@ public class NMSettingsConverterTest {
 
         whenBuild80211WirelessSettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("mode", "ap");
         thenResultingMapContainsBytes("ssid", "ssidtest");
         thenResultingMapContains("band", "a");
@@ -650,7 +822,7 @@ public class NMSettingsConverterTest {
 
         whenBuild80211WirelessSettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
 
     @Test
@@ -664,7 +836,7 @@ public class NMSettingsConverterTest {
 
         whenBuild80211WirelessSettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("mode", "infrastructure");
         thenResultingMapContainsBytes("ssid", "ssidtest");
         thenResultingMapContains("band", "bg");
@@ -682,7 +854,7 @@ public class NMSettingsConverterTest {
 
         whenBuild80211WirelessSettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("mode", "infrastructure");
         thenResultingMapContainsBytes("ssid", "ssidtest");
         thenResultingMapContains("band", "bg");
@@ -700,7 +872,7 @@ public class NMSettingsConverterTest {
 
         whenBuild80211WirelessSettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
 
     @Test
@@ -714,7 +886,7 @@ public class NMSettingsConverterTest {
 
         whenBuild80211WirelessSettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("mode", "infrastructure");
         thenResultingMapContainsBytes("ssid", "ssidtest");
         thenResultingMapContains("band", "bg");
@@ -732,7 +904,7 @@ public class NMSettingsConverterTest {
 
         whenBuild80211WirelessSettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("mode", "infrastructure");
         thenResultingMapContainsBytes("ssid", "ssidtest");
         thenResultingMapContains("band", "a");
@@ -750,7 +922,7 @@ public class NMSettingsConverterTest {
 
         whenBuild80211WirelessSettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("mode", "infrastructure");
         thenResultingMapContainsBytes("ssid", "ssidtest");
         thenResultingMapContains("channel", new UInt32(0));
@@ -768,7 +940,7 @@ public class NMSettingsConverterTest {
 
         whenBuild80211WirelessSettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("mode", "infrastructure");
         thenResultingMapContainsBytes("ssid", "ssidtest");
         thenResultingMapContains("band", "bg");
@@ -786,7 +958,7 @@ public class NMSettingsConverterTest {
 
         whenBuild80211WirelessSettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("mode", "infrastructure");
         thenResultingMapContainsBytes("ssid", "ssidtest");
         thenResultingMapContains("band", "a");
@@ -805,7 +977,7 @@ public class NMSettingsConverterTest {
 
         whenBuild80211WirelessSecuritySettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("psk", new Password("test").toString());
         thenResultingMapContains("key-mgmt", "wpa-psk");
         thenResultingMapContains("group", new Variant<>(Arrays.asList("ccmp"), "as").getValue());
@@ -825,7 +997,7 @@ public class NMSettingsConverterTest {
 
         whenBuild80211WirelessSecuritySettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("psk", new Password("test").toString());
         thenResultingMapContains("key-mgmt", "wpa-psk");
         thenResultingMapContains("group", new Variant<>(Arrays.asList("tkip"), "as").getValue());
@@ -845,7 +1017,7 @@ public class NMSettingsConverterTest {
 
         whenBuild80211WirelessSecuritySettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("psk", new Password("test").toString());
         thenResultingMapContains("key-mgmt", "wpa-psk");
         thenResultingMapContains("group", new Variant<>(Arrays.asList("tkip", "ccmp"), "as").getValue());
@@ -865,7 +1037,7 @@ public class NMSettingsConverterTest {
 
         whenBuild80211WirelessSecuritySettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
 
     @Test
@@ -880,7 +1052,7 @@ public class NMSettingsConverterTest {
 
         whenBuild80211WirelessSecuritySettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
 
     @Test
@@ -895,7 +1067,7 @@ public class NMSettingsConverterTest {
 
         whenBuild80211WirelessSecuritySettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("key-mgmt", "none");
         thenResultingMapContains("wep-key-type", 1);
         thenResultingMapContains("wep-key0", "test");
@@ -915,7 +1087,7 @@ public class NMSettingsConverterTest {
 
         whenBuild80211WirelessSecuritySettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("key-mgmt", "wpa-psk");
         thenResultingMapContains("proto", new Variant<>(Arrays.asList("wpa"), "as").getValue());
         thenResultingMapNotContains("wep-key-type");
@@ -934,7 +1106,7 @@ public class NMSettingsConverterTest {
 
         whenBuild80211WirelessSecuritySettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("key-mgmt", "wpa-psk");
         thenResultingMapContains("proto", new Variant<>(Arrays.asList("rsn"), "as").getValue());
         thenResultingMapNotContains("wep-key-type");
@@ -953,7 +1125,7 @@ public class NMSettingsConverterTest {
 
         whenBuild80211WirelessSecuritySettingsIsRunWith(this.networkProperties, "wlan0");
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
 
     @Test
@@ -962,7 +1134,7 @@ public class NMSettingsConverterTest {
 
         whenBuildGsmSettingsIsRunWith(this.networkProperties, "ttyACM0");
 
-        thenNoSuchElementExceptionThrown();
+        thenExceptionOccurred(NoSuchElementException.class);
     }
 
     @Test
@@ -972,7 +1144,7 @@ public class NMSettingsConverterTest {
 
         whenBuildGsmSettingsIsRunWith(this.networkProperties, "ttyACM0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("apn", "mobile.provider.com");
     }
 
@@ -986,7 +1158,7 @@ public class NMSettingsConverterTest {
 
         whenBuildGsmSettingsIsRunWith(this.networkProperties, "ttyACM0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("apn", "mobile.provider.com");
         thenResultingMapContains("username", "username");
         thenResultingMapContains("password", "password");
@@ -1002,7 +1174,7 @@ public class NMSettingsConverterTest {
 
         whenBuildGsmSettingsIsRunWith(this.networkProperties, "ttyACM0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("apn", "mobile.provider.com");
         thenResultingMapNotContains("username");
         thenResultingMapNotContains("password");
@@ -1014,7 +1186,7 @@ public class NMSettingsConverterTest {
 
         whenBuildPPPSettingsIsRunWith(this.networkProperties, "ttyACM0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
     }
 
     @Test
@@ -1025,7 +1197,7 @@ public class NMSettingsConverterTest {
 
         whenBuildPPPSettingsIsRunWith(this.networkProperties, "ttyACM0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("lcp-echo-interval", 30);
         thenResultingMapContains("lcp-echo-failure", 5);
     }
@@ -1037,7 +1209,7 @@ public class NMSettingsConverterTest {
 
         whenBuildPPPSettingsIsRunWith(this.networkProperties, "ttyACM0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapNotContains("refuse-eap");
         thenResultingMapNotContains("refuse-chap");
         thenResultingMapNotContains("refuse-pap");
@@ -1052,7 +1224,7 @@ public class NMSettingsConverterTest {
 
         whenBuildPPPSettingsIsRunWith(this.networkProperties, "ttyACM0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("refuse-eap", true);
         thenResultingMapContains("refuse-chap", true);
         thenResultingMapContains("refuse-pap", true);
@@ -1067,7 +1239,7 @@ public class NMSettingsConverterTest {
 
         whenBuildPPPSettingsIsRunWith(this.networkProperties, "ttyACM0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("refuse-eap", true);
         thenResultingMapContains("refuse-chap", false);
         thenResultingMapContains("refuse-pap", true);
@@ -1082,7 +1254,7 @@ public class NMSettingsConverterTest {
 
         whenBuildPPPSettingsIsRunWith(this.networkProperties, "ttyACM0");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("refuse-eap", true);
         thenResultingMapContains("refuse-chap", true);
         thenResultingMapContains("refuse-pap", false);
@@ -1097,9 +1269,9 @@ public class NMSettingsConverterTest {
 
         whenBuildPPPSettingsIsRunWith(this.networkProperties, "ttyACM0");
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
-    
+
     @Test
     public void buildVlanSettingsShouldWorkWithRequiredSettings() {
         givenMapWith("net.interface.eth0.30.config.vlan.parent", "eth0");
@@ -1108,14 +1280,14 @@ public class NMSettingsConverterTest {
 
         whenBuildVlanSettingsIsRunWith(this.networkProperties, "eth0.30");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("parent", "eth0");
         thenResultingMapContains("id", new UInt32(30));
         thenResultingMapContains("flags", new UInt32(1));
         thenResultingMapContains("ingress-priority-map", new Variant<>(Arrays.asList(), "as").getValue());
         thenResultingMapContains("egress-priority-map", new Variant<>(Arrays.asList(), "as").getValue());
     }
-    
+
     @Test
     public void buildVlanSettingsShouldWorkWithFullSettings() {
         givenMapWith("net.interface.eth1.40.config.vlan.parent", "eth1");
@@ -1128,41 +1300,39 @@ public class NMSettingsConverterTest {
 
         whenBuildVlanSettingsIsRunWith(this.networkProperties, "eth1.40");
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("parent", "eth1");
         thenResultingMapContains("id", new UInt32(40));
         thenResultingMapContains("flags", new UInt32(3));
-        thenResultingMapContains("ingress-priority-map", new Variant<>(
-                Arrays.asList("0:1", "4:5"), "as").getValue());
-        thenResultingMapContains("egress-priority-map", new Variant<>(
-                Arrays.asList("2:3"), "as").getValue());    
+        thenResultingMapContains("ingress-priority-map", new Variant<>(Arrays.asList("0:1", "4:5"), "as").getValue());
+        thenResultingMapContains("egress-priority-map", new Variant<>(Arrays.asList("2:3"), "as").getValue());
     }
-    
+
     @Test
     public void buildVlanSettingsShouldThrowWhenMissingParent() {
         givenMapWith("net.interface.eth0.30.config.vlan.id", 30);
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
 
         whenBuildVlanSettingsIsRunWith(this.networkProperties, "eth0.30");
-        
-        thenNoSuchElementExceptionThrown();
+
+        thenExceptionOccurred(NoSuchElementException.class);
     }
-    
+
     @Test
     public void buildVlanSettingsShouldThrowWhenMissingVlanId() {
         givenMapWith("net.interface.eth0.30.config.vlan.parent", "eth0");
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
 
         whenBuildVlanSettingsIsRunWith(this.networkProperties, "eth0.30");
-        
-        thenNoSuchElementExceptionThrown();
+
+        thenExceptionOccurred(NoSuchElementException.class);
     }
 
     @Test
     public void buildConnectionSettingsShouldWorkWithWifi() {
         whenBuildConnectionSettings(Optional.empty(), "wlan0", NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("type", "802-11-wireless");
         thenResultingMapContains("autoconnect-retries", 1);
     }
@@ -1171,7 +1341,7 @@ public class NMSettingsConverterTest {
     public void buildConnectionSettingsShouldWorkWithEthernet() {
         whenBuildConnectionSettings(Optional.empty(), "eth0", NMDeviceType.NM_DEVICE_TYPE_ETHERNET);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("type", "802-3-ethernet");
         thenResultingMapContains("autoconnect-retries", 1);
     }
@@ -1180,14 +1350,14 @@ public class NMSettingsConverterTest {
     public void buildConnectionSettingsShouldWorkWithUnsupported() {
         whenBuildConnectionSettings(Optional.empty(), "modem0", NMDeviceType.NM_DEVICE_TYPE_ADSL);
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
-    
+
     @Test
     public void buildConnectionSettingsShouldWorkWithVlan() {
         whenBuildConnectionSettings(Optional.empty(), "eth0.40", NMDeviceType.NM_DEVICE_TYPE_VLAN);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("type", "vlan");
         thenResultingMapContains("autoconnect-retries", 1);
     }
@@ -1200,7 +1370,7 @@ public class NMSettingsConverterTest {
 
         whenBuildConnectionSettings(Optional.of(this.mockedConnection), "eth0", NMDeviceType.NM_DEVICE_TYPE_ETHERNET);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingMapContains("test", "test");
         thenResultingMapContains("autoconnect-retries", 1);
     }
@@ -1213,7 +1383,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
 
     @Test
@@ -1224,7 +1394,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
 
     @Test
@@ -1248,7 +1418,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv6", "method", "disabled");
         thenResultingBuildAllMapContains("ipv4", "method", "manual");
         thenResultingBuildAllMapContains("ipv4", "address-data", buildAddressDataWith("192.168.0.12", new UInt32(25)));
@@ -1288,8 +1458,8 @@ public class NMSettingsConverterTest {
         givenMapWith("net.interface.wlan0.config.802-1x.eap", "Kura8021xEapTtls");
         givenMapWith("net.interface.wlan0.config.802-1x.innerAuth", "Kura8021xInnerAuthMschapv2");
         givenMapWith("net.interface.wlan0.config.802-1x.anonymous-identity", "anonymous-identity-test-var");
-        givenMapWith("net.interface.wlan0.config.802-1x.ca-cert", "binary ca cert");
-        givenMapWith("net.interface.wlan0.config.802-1x.ca-cert-password", new Password("secure-password"));
+        givenMapWith("net.interface.wlan0.config.802-1x.ca-cert-name",
+                buildMockedCertificateWithCert("binary ca cert"));
         givenMapWith("net.interface.wlan0.config.802-1x.identity", "example-user-name");
         givenMapWith("net.interface.wlan0.config.802-1x.password", new Password("secure-test-password-123!@#"));
         givenNetworkPropsCreatedWithTheMap(this.internetNetworkPropertiesInstanciationMap);
@@ -1297,7 +1467,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv6", "method", "disabled");
         thenResultingBuildAllMapContains("ipv4", "method", "manual");
         thenResultingBuildAllMapContains("ipv4", "address-data", buildAddressDataWith("192.168.0.12", new UInt32(25)));
@@ -1314,9 +1484,10 @@ public class NMSettingsConverterTest {
         thenResultingBuildAllMapContains("802-1x", "phase2-auth", "mschapv2");
         thenResultingBuildAllMapContains("802-1x", "anonymous-identity", "anonymous-identity-test-var");
         thenResultingBuildAllMapContainsBytes("802-1x", "ca-cert", "binary ca cert");
-        thenResultingBuildAllMapContains("802-1x", "ca-cert-password", "secure-password");
         thenResultingBuildAllMapContains("802-1x", "identity", "example-user-name");
         thenResultingBuildAllMapContains("802-1x", "password", "secure-test-password-123!@#");
+
+        thenResultingBuildAllMapNotContains("802-1x", "ca-cert-password");
     }
 
     @Test
@@ -1341,7 +1512,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv6", "method", "disabled");
         thenResultingBuildAllMapContains("ipv4", "method", "manual");
         thenResultingBuildAllMapContains("ipv4", "address-data", buildAddressDataWith("192.168.0.12", new UInt32(25)));
@@ -1385,7 +1556,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv6", "method", "disabled");
         thenResultingBuildAllMapContains("ipv4", "method", "manual");
         thenResultingBuildAllMapContains("ipv4", "address-data", buildAddressDataWith("192.168.0.12", new UInt32(25)));
@@ -1429,7 +1600,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv6", "method", "disabled");
         thenResultingBuildAllMapContains("ipv4", "method", "manual");
         thenResultingBuildAllMapContains("ipv4", "address-data", buildAddressDataWith("192.168.0.12", new UInt32(25)));
@@ -1470,7 +1641,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv6", "method", "disabled");
         thenResultingBuildAllMapContains("ipv4", "method", "manual");
         thenResultingBuildAllMapContains("ipv4", "address-data", buildAddressDataWith("192.168.0.12", new UInt32(25)));
@@ -1503,7 +1674,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "eth0", "eth0",
                 NMDeviceType.NM_DEVICE_TYPE_ETHERNET);
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
 
     @Test
@@ -1517,7 +1688,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "eth0", "eth0",
                 NMDeviceType.NM_DEVICE_TYPE_ETHERNET);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv6", "method", "disabled");
         thenResultingBuildAllMapContains("ipv4", "method", "manual");
         thenResultingBuildAllMapContains("ipv4", "address-data", buildAddressDataWith("192.168.0.12", new UInt32(25)));
@@ -1543,7 +1714,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "eth0", "eth0",
                 NMDeviceType.NM_DEVICE_TYPE_ETHERNET);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv6", "method", "disabled");
         thenResultingBuildAllMapContains("ipv4", "method", "manual");
         thenResultingBuildAllMapContains("ipv4", "address-data", buildAddressDataWith("192.168.0.12", new UInt32(25)));
@@ -1556,7 +1727,7 @@ public class NMSettingsConverterTest {
         thenResultingBuildAllMapContains("connection", "interface-name", "eth0");
         thenResultingBuildAllMapContains("connection", "type", "802-3-ethernet");
     }
-    
+
     @Test
     public void buildSettingsShouldWorkWithExpectedInputsVlanAndWanIp4() {
         givenMapWith("net.interface.myVlan.config.dhcpClient4.enabled", false);
@@ -1574,7 +1745,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "myVlan", "myVlan",
                 NMDeviceType.NM_DEVICE_TYPE_VLAN);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv6", "method", "disabled");
         thenResultingBuildAllMapContains("ipv4", "method", "manual");
         thenResultingBuildAllMapContains("ipv4", "address-data", buildAddressDataWith("192.168.0.12", new UInt32(25)));
@@ -1589,10 +1760,10 @@ public class NMSettingsConverterTest {
         thenResultingBuildAllMapContains("vlan", "parent", "eth0");
         thenResultingBuildAllMapContains("vlan", "id", new UInt32(55));
         thenResultingBuildAllMapContains("vlan", "flags", new UInt32(2));
-        thenResultingBuildAllMapContains("vlan", "ingress-priority-map", new Variant<>(
-                Arrays.asList(), "as").getValue());
-        thenResultingBuildAllMapContains("vlan", "egress-priority-map", new Variant<>(
-                Arrays.asList("2:3"), "as").getValue());
+        thenResultingBuildAllMapContains("vlan", "ingress-priority-map",
+                new Variant<>(Arrays.asList(), "as").getValue());
+        thenResultingBuildAllMapContains("vlan", "egress-priority-map",
+                new Variant<>(Arrays.asList("2:3"), "as").getValue());
     }
 
     @Test
@@ -1605,7 +1776,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "1-1.1", "ttyACM0",
                 NMDeviceType.NM_DEVICE_TYPE_MODEM);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv6", "method", "disabled");
         thenResultingBuildAllMapContains("ipv4", "method", "auto");
         thenResultingBuildAllMapContains("connection", "id", "kura-ttyACM0-connection");
@@ -1628,7 +1799,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "eth0", "eth0",
                 NMDeviceType.NM_DEVICE_TYPE_ETHERNET);
 
-        thenNoSuchElementExceptionThrown();
+        thenExceptionOccurred(NoSuchElementException.class);
     }
 
     @Test
@@ -1644,7 +1815,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "eth0", "eth0",
                 NMDeviceType.NM_DEVICE_TYPE_ETHERNET);
 
-        thenNoSuchElementExceptionThrown();
+        thenExceptionOccurred(NoSuchElementException.class);
     }
 
     @Test
@@ -1660,7 +1831,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "eth0", "eth0",
                 NMDeviceType.NM_DEVICE_TYPE_ETHERNET);
 
-        thenNoSuchElementExceptionThrown();
+        thenExceptionOccurred(NoSuchElementException.class);
     }
 
     @Test
@@ -1686,7 +1857,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoSuchElementExceptionThrown();
+        thenExceptionOccurred(NoSuchElementException.class);
     }
 
     @Test
@@ -1712,7 +1883,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoSuchElementExceptionThrown();
+        thenExceptionOccurred(NoSuchElementException.class);
     }
 
     @Test
@@ -1738,7 +1909,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoSuchElementExceptionThrown();
+        thenExceptionOccurred(NoSuchElementException.class);
     }
 
     @Test
@@ -1750,7 +1921,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
 
     @Test
@@ -1762,7 +1933,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
 
     @Test
@@ -1788,7 +1959,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
 
     @Test
@@ -1815,7 +1986,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv4", "method", "disabled");
         thenResultingBuildAllMapContains("ipv6", "method", "manual");
         thenResultingBuildAllMapContains("ipv6", "address-data",
@@ -1858,7 +2029,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv4", "method", "disabled");
         thenResultingBuildAllMapContains("ipv6", "method", "manual");
         thenResultingBuildAllMapContains("ipv6", "address-data",
@@ -1902,7 +2073,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv4", "method", "disabled");
         thenResultingBuildAllMapContains("ipv6", "method", "manual");
         thenResultingBuildAllMapContains("ipv6", "address-data",
@@ -1946,7 +2117,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv4", "method", "disabled");
         thenResultingBuildAllMapContains("ipv6", "method", "manual");
         thenResultingBuildAllMapContains("ipv6", "address-data",
@@ -1989,7 +2160,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv4", "method", "disabled");
         thenResultingBuildAllMapContains("ipv6", "method", "manual");
         thenResultingBuildAllMapContains("ipv6", "address-data",
@@ -2022,7 +2193,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "eth0", "eth0",
                 NMDeviceType.NM_DEVICE_TYPE_ETHERNET);
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
 
     @Test
@@ -2037,7 +2208,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "eth0", "eth0",
                 NMDeviceType.NM_DEVICE_TYPE_ETHERNET);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv4", "method", "disabled");
         thenResultingBuildAllMapContains("ipv6", "method", "manual");
         thenResultingBuildAllMapContains("ipv6", "address-data",
@@ -2065,7 +2236,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "eth0", "eth0",
                 NMDeviceType.NM_DEVICE_TYPE_ETHERNET);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv4", "method", "disabled");
         thenResultingBuildAllMapContains("ipv6", "method", "manual");
         thenResultingBuildAllMapContains("ipv6", "address-data",
@@ -2090,7 +2261,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "1-1.1", "ttyACM0",
                 NMDeviceType.NM_DEVICE_TYPE_MODEM);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv6", "method", "auto");
         thenResultingBuildAllMapContains("ipv4", "method", "disabled");
         thenResultingBuildAllMapContains("connection", "id", "kura-ttyACM0-connection");
@@ -2114,7 +2285,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "eth0", "eth0",
                 NMDeviceType.NM_DEVICE_TYPE_ETHERNET);
 
-        thenNoSuchElementExceptionThrown();
+        thenExceptionOccurred(NoSuchElementException.class);
     }
 
     @Test
@@ -2131,7 +2302,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "eth0", "eth0",
                 NMDeviceType.NM_DEVICE_TYPE_ETHERNET);
 
-        thenNoSuchElementExceptionThrown();
+        thenExceptionOccurred(NoSuchElementException.class);
     }
 
     @Test
@@ -2175,7 +2346,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoSuchElementExceptionThrown();
+        thenExceptionOccurred(NoSuchElementException.class);
     }
 
     @Test
@@ -2202,7 +2373,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoSuchElementExceptionThrown();
+        thenExceptionOccurred(NoSuchElementException.class);
     }
 
     @Test
@@ -2229,7 +2400,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoSuchElementExceptionThrown();
+        thenExceptionOccurred(NoSuchElementException.class);
     }
 
     @Test
@@ -2241,7 +2412,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
 
     @Test
@@ -2253,7 +2424,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
 
     @Test
@@ -2282,7 +2453,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
 
     @Test
@@ -2312,7 +2483,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv4", "method", "manual");
         thenResultingBuildAllMapContains("ipv4", "address-data", buildAddressDataWith("192.168.0.12", new UInt32(25)));
         thenResultingBuildAllMapNotContains("ipv4", "gateway");
@@ -2365,7 +2536,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv4", "method", "manual");
         thenResultingBuildAllMapContains("ipv4", "address-data", buildAddressDataWith("192.168.0.12", new UInt32(25)));
         thenResultingBuildAllMapContains("ipv4", "ignore-auto-dns", true);
@@ -2415,7 +2586,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv4", "method", "manual");
         thenResultingBuildAllMapContains("ipv4", "address-data", buildAddressDataWith("192.168.0.12", new UInt32(25)));
         thenResultingBuildAllMapNotContains("ipv4", "gateway");
@@ -2465,7 +2636,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv4", "method", "manual");
         thenResultingBuildAllMapContains("ipv4", "address-data", buildAddressDataWith("192.168.0.12", new UInt32(25)));
         thenResultingBuildAllMapNotContains("ipv4", "gateway");
@@ -2518,7 +2689,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv4", "method", "manual");
         thenResultingBuildAllMapContains("ipv4", "address-data", buildAddressDataWith("192.168.0.12", new UInt32(25)));
         thenResultingBuildAllMapContains("ipv4", "gateway", "192.168.0.1");
@@ -2557,7 +2728,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "eth0", "eth0",
                 NMDeviceType.NM_DEVICE_TYPE_ETHERNET);
 
-        thenIllegalArgumentExceptionThrown();
+        thenExceptionOccurred(IllegalArgumentException.class);
     }
 
     @Test
@@ -2575,7 +2746,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "eth0", "eth0",
                 NMDeviceType.NM_DEVICE_TYPE_ETHERNET);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv4", "method", "manual");
         thenResultingBuildAllMapContains("ipv4", "address-data", buildAddressDataWith("192.168.0.12", new UInt32(25)));
         thenResultingBuildAllMapContains("ipv4", "ignore-auto-dns", true);
@@ -2613,7 +2784,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "eth0", "eth0",
                 NMDeviceType.NM_DEVICE_TYPE_ETHERNET);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv4", "method", "manual");
         thenResultingBuildAllMapContains("ipv4", "address-data", buildAddressDataWith("192.168.0.12", new UInt32(25)));
         thenResultingBuildAllMapContains("ipv4", "gateway", "192.168.0.1");
@@ -2645,7 +2816,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "1-1.1", "ttyACM0",
                 NMDeviceType.NM_DEVICE_TYPE_MODEM);
 
-        thenNoExceptionsHaveBeenThrown();
+        thenNoExceptionOccurred();
         thenResultingBuildAllMapContains("ipv6", "method", "auto");
         thenResultingBuildAllMapContains("ipv4", "method", "auto");
         thenResultingBuildAllMapContains("connection", "id", "kura-ttyACM0-connection");
@@ -2674,7 +2845,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "eth0", "eth0",
                 NMDeviceType.NM_DEVICE_TYPE_ETHERNET);
 
-        thenNoSuchElementExceptionThrown();
+        thenExceptionOccurred(NoSuchElementException.class);
     }
 
     @Test
@@ -2696,7 +2867,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "eth0", "eth0",
                 NMDeviceType.NM_DEVICE_TYPE_ETHERNET);
 
-        thenNoSuchElementExceptionThrown();
+        thenExceptionOccurred(NoSuchElementException.class);
     }
 
     @Test
@@ -2751,7 +2922,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoSuchElementExceptionThrown();
+        thenExceptionOccurred(NoSuchElementException.class);
     }
 
     @Test
@@ -2783,7 +2954,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoSuchElementExceptionThrown();
+        thenExceptionOccurred(NoSuchElementException.class);
     }
 
     @Test
@@ -2815,7 +2986,7 @@ public class NMSettingsConverterTest {
         whenBuildSettingsIsRunWith(this.networkProperties, Optional.empty(), "wlan0", "wlan0",
                 NMDeviceType.NM_DEVICE_TYPE_WIFI);
 
-        thenNoSuchElementExceptionThrown();
+        thenExceptionOccurred(NoSuchElementException.class);
     }
 
     /*
@@ -2845,6 +3016,15 @@ public class NMSettingsConverterTest {
 
     }
 
+    public void givenNetworkManagerVersion(String nmVersion) {
+        this.nmVersion = SemanticVersion.parse(nmVersion);
+    }
+
+    public void givenMockConnectionWithNullSettings() {
+        this.mockedConnection = Mockito.mock(Connection.class);
+        Mockito.when(this.mockedConnection.GetSettings()).thenReturn(null);
+    }
+
     /*
      * When
      */
@@ -2853,121 +3033,89 @@ public class NMSettingsConverterTest {
             String deviceId, String iface, NMDeviceType deviceType) {
         try {
             this.resultAllSettingsMap = NMSettingsConverter.buildSettings(properties, oldConnection, deviceId, iface,
-                    deviceType);
-        } catch (NoSuchElementException e) {
-            this.hasNoSuchElementExceptionBeenThrown = true;
-        } catch (IllegalArgumentException e) {
-            this.hasAnIllegalArgumentExceptionThrown = true;
+                    deviceType, this.nmVersion);
         } catch (Exception e) {
-            this.hasAGenericExecptionBeenThrown = true;
+            this.occurredException = e;
         }
     }
 
     public void whenBuildIpv4SettingsIsRunWith(NetworkProperties props, String iface) {
         try {
             this.resultMap = NMSettingsConverter.buildIpv4Settings(props, iface);
-        } catch (NoSuchElementException e) {
-            this.hasNoSuchElementExceptionBeenThrown = true;
-        } catch (IllegalArgumentException e) {
-            this.hasAnIllegalArgumentExceptionThrown = true;
         } catch (Exception e) {
-            this.hasAGenericExecptionBeenThrown = true;
+            this.occurredException = e;
         }
     }
 
-    public void whenBuildIpv6SettingsIsRunWith(NetworkProperties props, String iface) {
+    public void whenBuildIpv6SettingsIsRunWith(NetworkProperties props, String iface, SemanticVersion nmVersion) {
         try {
-            this.resultMap = NMSettingsConverter.buildIpv6Settings(props, iface);
-        } catch (NoSuchElementException e) {
-            this.hasNoSuchElementExceptionBeenThrown = true;
-        } catch (IllegalArgumentException e) {
-            this.hasAnIllegalArgumentExceptionThrown = true;
+            this.resultMap = NMSettingsConverter.buildIpv6Settings(props, iface, nmVersion);
         } catch (Exception e) {
-            this.hasAGenericExecptionBeenThrown = true;
+            this.occurredException = e;
         }
     }
 
     public void whenBuild8021xSettingsIsRunWith(NetworkProperties props, String iface) {
         try {
             this.resultMap = NMSettingsConverter.build8021xSettings(props, iface);
-        } catch (NoSuchElementException e) {
-            this.hasNoSuchElementExceptionBeenThrown = true;
-        } catch (IllegalArgumentException e) {
-            this.hasAnIllegalArgumentExceptionThrown = true;
         } catch (Exception e) {
-            this.hasAGenericExecptionBeenThrown = true;
+            this.occurredException = e;
         }
     }
 
     public void whenBuild80211WirelessSettingsIsRunWith(NetworkProperties props, String iface) {
         try {
             this.resultMap = NMSettingsConverter.build80211WirelessSettings(props, iface);
-        } catch (NoSuchElementException e) {
-            this.hasNoSuchElementExceptionBeenThrown = true;
-        } catch (IllegalArgumentException e) {
-            this.hasAnIllegalArgumentExceptionThrown = true;
         } catch (Exception e) {
-            this.hasAGenericExecptionBeenThrown = true;
+            this.occurredException = e;
         }
     }
 
     public void whenBuildConnectionSettings(Optional<Connection> connection, String iface, NMDeviceType deviceType) {
         try {
             this.resultMap = NMSettingsConverter.buildConnectionSettings(connection, iface, deviceType);
-        } catch (NoSuchElementException e) {
-            this.hasNoSuchElementExceptionBeenThrown = true;
-        } catch (IllegalArgumentException e) {
-            this.hasAnIllegalArgumentExceptionThrown = true;
         } catch (Exception e) {
-            this.hasAGenericExecptionBeenThrown = true;
+            this.occurredException = e;
         }
     }
 
     public void whenBuild80211WirelessSecuritySettingsIsRunWith(NetworkProperties props, String iface) {
         try {
             this.resultMap = NMSettingsConverter.build80211WirelessSecuritySettings(props, iface);
-        } catch (NoSuchElementException e) {
-            this.hasNoSuchElementExceptionBeenThrown = true;
-        } catch (IllegalArgumentException e) {
-            this.hasAnIllegalArgumentExceptionThrown = true;
         } catch (Exception e) {
-            this.hasAGenericExecptionBeenThrown = true;
+            this.occurredException = e;
         }
     }
 
     private void whenBuildGsmSettingsIsRunWith(NetworkProperties props, String iface) {
         try {
             this.resultMap = NMSettingsConverter.buildGsmSettings(props, iface);
-        } catch (NoSuchElementException e) {
-            this.hasNoSuchElementExceptionBeenThrown = true;
-        } catch (IllegalArgumentException e) {
-            this.hasAnIllegalArgumentExceptionThrown = true;
         } catch (Exception e) {
-            this.hasAGenericExecptionBeenThrown = true;
+            this.occurredException = e;
         }
     }
 
     private void whenBuildPPPSettingsIsRunWith(NetworkProperties props, String iface) {
         try {
             this.resultMap = NMSettingsConverter.buildPPPSettings(props, iface);
-        } catch (NoSuchElementException e) {
-            this.hasNoSuchElementExceptionBeenThrown = true;
-        } catch (IllegalArgumentException e) {
-            this.hasAnIllegalArgumentExceptionThrown = true;
         } catch (Exception e) {
-            this.hasAGenericExecptionBeenThrown = true;
+            this.occurredException = e;
         }
     }
-    
+
     private void whenBuildVlanSettingsIsRunWith(NetworkProperties props, String iface) {
         try {
             this.resultMap = NMSettingsConverter.buildVlanSettings(props, iface);
-        } catch (NoSuchElementException e) {
-            this.hasNoSuchElementExceptionBeenThrown = true;
-        } catch (IllegalArgumentException e) {
-            this.hasAnIllegalArgumentExceptionThrown = true;
         } catch (Exception e) {
-            this.hasAGenericExecptionBeenThrown = true;
+            this.occurredException = e;
+        }
+    }
+
+    private void whenBuildEthernetSettingsIsRunWith(NetworkProperties props, String iface, SemanticVersion nmVersion) {
+        try {
+            this.resultMap = NMSettingsConverter.buildEthernetSettings(props, iface, nmVersion);
+        } catch (Exception e) {
+            this.occurredException = e;
         }
     }
 
@@ -3013,18 +3161,51 @@ public class NMSettingsConverterTest {
                 new String((byte[]) this.resultAllSettingsMap.get(key).get(subKey).getValue(), StandardCharsets.UTF_8));
     }
 
-    public void thenNoSuchElementExceptionThrown() {
-        assertTrue(this.hasNoSuchElementExceptionBeenThrown);
+    private <E extends Exception> void thenExceptionOccurred(Class<E> expectedException) {
+        assertNotNull(this.occurredException);
+        assertEquals(expectedException.getName(), this.occurredException.getClass().getName());
     }
 
-    public void thenIllegalArgumentExceptionThrown() {
-        assertTrue(this.hasAnIllegalArgumentExceptionThrown);
+    private void thenNoExceptionOccurred() {
+        String errorMessage = "Empty message";
+        if (Objects.nonNull(this.occurredException)) {
+            StringWriter sw = new StringWriter();
+            this.occurredException.printStackTrace(new PrintWriter(sw));
+
+            errorMessage = String.format("No exception expected, \"%s\" found. Caused by: %s",
+                    this.occurredException.getClass().getName(), sw.toString());
+        }
+
+        assertNull(errorMessage, this.occurredException);
     }
 
-    public void thenNoExceptionsHaveBeenThrown() {
-        assertFalse(this.hasNoSuchElementExceptionBeenThrown);
-        assertFalse(this.hasAGenericExecptionBeenThrown);
-        assertFalse(this.hasAnIllegalArgumentExceptionThrown);
+    private void thenResultingMapContainsEncryptedPrivateKey(String key, String expectedPrivateKeyPassword,
+            String expectedPemPrivateKeyContent) {
+        byte[] encryptedKey = (byte[]) this.resultMap.get(key).getValue();
+        byte[] decryptedKey = decryptKey(convertToDer(encryptedKey), expectedPrivateKeyPassword);
+        assertEquals(expectedPemPrivateKeyContent, Base64.getEncoder().encodeToString(decryptedKey));
+    }
+
+    private byte[] decryptKey(byte[] encryptedKey, String expectedPrivateKeyPassword) {
+        PBEKeySpec pbeSpec = new PBEKeySpec(expectedPrivateKeyPassword.toCharArray());
+        try {
+            EncryptedPrivateKeyInfo privateKeyInfo = new EncryptedPrivateKeyInfo(encryptedKey);
+            SecretKeyFactory secretKeyFact = SecretKeyFactory.getInstance(privateKeyInfo.getAlgName());
+            SecretKey secret = secretKeyFact.generateSecret(pbeSpec);
+            PKCS8EncodedKeySpec keySpec = privateKeyInfo.getKeySpec(secret);
+            KeyFactory keyFact = KeyFactory.getInstance("RSA");
+            return keyFact.generatePrivate(keySpec).getEncoded();
+        } catch (IOException | NoSuchAlgorithmException | InvalidKeyException | InvalidKeySpecException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private byte[] convertToDer(byte[] privateKeyPem) {
+        String privateKeyString = new String(privateKeyPem, StandardCharsets.UTF_8);
+        String privateKeyStringContent = privateKeyString.replace("\n", "")
+                .replace("-----BEGIN ENCRYPTED PRIVATE KEY-----", "")
+                .replace("-----END ENCRYPTED PRIVATE KEY-----", "");
+        return Base64.getDecoder().decode(privateKeyStringContent.getBytes());
     }
 
     /*
@@ -3042,5 +3223,25 @@ public class NMSettingsConverterTest {
         Variant<?> dataVariant = new Variant<>(addressData, "aa{sv}");
 
         return dataVariant.getValue();
+    }
+
+    public Certificate buildMockedCertificateWithCert(String certBytes) {
+        Certificate cert = mock(Certificate.class);
+        try {
+            when(cert.getEncoded()).thenReturn(certBytes.getBytes());
+        } catch (CertificateEncodingException e) {
+            fail();
+        }
+
+        return cert;
+    }
+
+    public PrivateKey buildMockPrivateKeyWith(String privateKeyPEM) {
+        byte[] decoded = Base64.getDecoder().decode(privateKeyPEM);
+
+        PrivateKey key = mock(PrivateKey.class);
+        when(key.getEncoded()).thenReturn(decoded);
+
+        return key;
     }
 }

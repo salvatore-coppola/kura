@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2020, 2021 Eurotech and/or its affiliates and others
+ * Copyright (c) 2020, 2023 Eurotech and/or its affiliates and others
  * 
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -30,8 +30,10 @@ public class GwtKeystoreEntry extends GwtBaseModel implements IsSerializable, Se
     public GwtKeystoreEntry() {
     }
 
-    public GwtKeystoreEntry(final String alias, final String keystoreName, final Kind kind, final Date validityStart, final Date validityEnd) {
+    public GwtKeystoreEntry(final String alias, final String distinguishedNames, String keystoreName, final Kind kind,
+            final Date validityStart, final Date validityEnd) {
         set("alias", alias);
+        set("DNs", distinguishedNames);
         set("keystoreName", keystoreName);
         set("kind", kind.toString());
         set("validityStart", validityStart);
@@ -42,16 +44,20 @@ public class GwtKeystoreEntry extends GwtBaseModel implements IsSerializable, Se
         return get("alias");
     }
 
+    public String getDistinguishedNames() {
+        return get("DNs");
+    }
+
     public String getKeystoreName() {
         return get("keystoreName");
     }
-    
+
     public Date getValidityStartDate() {
-    	return get("validityStart");
+        return get("validityStart");
     }
-    
+
     public Date getValidityEndDate() {
-    	return get("validityEnd");
+        return get("validityEnd");
     }
 
     public Kind getKind() {

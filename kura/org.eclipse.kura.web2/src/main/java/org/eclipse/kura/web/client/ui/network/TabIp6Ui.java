@@ -1,6 +1,6 @@
 /*******************************************************************************
- * Copyright (c) 2023 Eurotech and/or its affiliates and others
- * 
+ * Copyright (c) 2023, 2024 Eurotech and/or its affiliates and others
+ *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
  * which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -9,6 +9,7 @@
  * 
  * Contributors:
  *  Eurotech
+ *  Areti
  *******************************************************************************/
 package org.eclipse.kura.web.client.ui.network;
 
@@ -179,6 +180,10 @@ public class TabIp6Ui extends Composite implements NetworkTab {
         initListBoxes();
         initTextBoxes();
     }
+    
+    public String getStatus() {
+        return this.status.getSelectedItemText();
+    }
 
     private void initLabels() {
         this.labelStatus.setText(MSGS.netIPv6Status());
@@ -212,6 +217,7 @@ public class TabIp6Ui extends Composite implements NetworkTab {
     }
 
     private void initStatusField() {
+        this.status.clear();
         this.status.addItem(MessageUtils.get(STATUS_DISABLED), STATUS_DISABLED);
         this.status.addItem(MessageUtils.get(STATUS_LAN), STATUS_LAN);
         this.status.addItem(MessageUtils.get(STATUS_WAN), STATUS_WAN);

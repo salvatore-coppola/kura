@@ -342,6 +342,7 @@ public class NetworkConfigurationServiceCommon {
         addTypeDefinition(tocd, ifaceName);
         addMtuDefinition(tocd, ifaceName);
         addAutoconnectDefinition(tocd, ifaceName);
+        addPromiscDefinition(tocd, ifaceName);
 
         addIp4InterfaceCommonDefinition(tocd, ifaceName);
         addIp6InterfaceCommonDefinition(tocd, ifaceName);
@@ -377,6 +378,8 @@ public class NetworkConfigurationServiceCommon {
 
         tocd.addAD(buildAttributeDefinition(String.format(PREFIX + "%s.config.ip4.gateway", ifaceName),
                 NetworkConfigurationPropertyNames.CONFIG_IPV4_GATEWAY, Tscalar.STRING));
+        tocd.addAD(buildAttributeDefinition(String.format(PREFIX + "%s.config.ip4.mtu", ifaceName),
+                NetworkConfigurationPropertyNames.CONFIG_IPV4_MTU, Tscalar.INTEGER));
         addIp4StatusDefinition(tocd, ifaceName);
 
     }
@@ -393,6 +396,8 @@ public class NetworkConfigurationServiceCommon {
 
         tocd.addAD(buildAttributeDefinition(String.format(PREFIX + "%s.config.ip6.gateway", ifaceName),
                 NetworkConfigurationPropertyNames.CONFIG_IPV6_GATEWAY, Tscalar.STRING));
+        tocd.addAD(buildAttributeDefinition(String.format(PREFIX + "%s.config.ip6.mtu", ifaceName),
+                NetworkConfigurationPropertyNames.CONFIG_IPV6_MTU, Tscalar.INTEGER));
         addIp4StatusDefinition(tocd, ifaceName);
 
     }
@@ -451,6 +456,14 @@ public class NetworkConfigurationServiceCommon {
         Tad tad = buildAttributeDefinition(String.format(PREFIX + "%s.config.mtu", ifaceName),
                 NetworkConfigurationPropertyNames.CONFIG_MTU, Tscalar.INTEGER);
         tad.setRequired(true);
+        tocd.addAD(tad);
+    }
+    
+    private static void addPromiscDefinition(Tocd tocd, String ifaceName) {
+        Tad tad = buildAttributeDefinition(String.format(PREFIX + "%s.config.promisc", ifaceName),
+                NetworkConfigurationPropertyNames.CONFIG_PROMISC, Tscalar.INTEGER);
+        tad.setRequired(true);
+        tad.setDefault("-1");
         tocd.addAD(tad);
     }
 

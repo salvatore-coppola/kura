@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011, 2023 Eurotech and/or its affiliates and others
+ * Copyright (c) 2011, 2024 Eurotech and/or its affiliates and others
  * 
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -9,6 +9,7 @@
  * 
  * Contributors:
  *  Eurotech
+ *  Areti
  *******************************************************************************/
 package org.eclipse.kura.web.client.ui.network;
 
@@ -188,11 +189,15 @@ public class TabIp4Ui extends Composite implements NetworkTab {
     @UiField
     HelpButton dnsHelp;
 
-    public TabIp4Ui(GwtSession currentSession, NetworkTabsUi netTabs) {
+    public TabIp4Ui(GwtSession currentSession, NetworkTabsUi netTabs, final boolean isNet2) {
         initWidget(uiBinder.createAndBindUi(this));
         this.tabs = netTabs;
         this.helpTitle.setText(MSGS.netHelpTitle());
-        detectIfNet2();
+
+        this.isNet2 = isNet2;
+
+        initNet2FeaturesOnly(isNet2);
+
         initForm();
         this.dnsRead.setVisible(false);
 
@@ -368,23 +373,6 @@ public class TabIp4Ui extends Composite implements NetworkTab {
 
     // ---------------Private Methods------------
 
-    private void detectIfNet2() {
-        this.gwtNetworkService.isNet2(new AsyncCallback<Boolean>() {
-
-            @Override
-            public void onFailure(Throwable caught) {
-                TabIp4Ui.this.isNet2 = false;
-                FailureHandler.handle(caught);
-            }
-
-            @Override
-            public void onSuccess(Boolean result) {
-                TabIp4Ui.this.isNet2 = result;
-                initNet2FeaturesOnly(result);
-            }
-        });
-    }
-
     private void initNet2FeaturesOnly(boolean isNet2) {
         this.labelPriority.setVisible(isNet2);
         this.priority.setVisible(isNet2);
@@ -483,8 +471,8 @@ public class TabIp4Ui extends Composite implements NetworkTab {
 
                 @Override
                 public void onSuccess(GwtXSRFToken token) {
-                    TabIp4Ui.this.gwtNetworkService.renewDhcpLease(token,
-                            TabIp4Ui.this.selectedNetIfConfig.getName(), new AsyncCallback<Void>() {
+                    TabIp4Ui.this.gwtNetworkService.renewDhcpLease(token, TabIp4Ui.this.selectedNetIfConfig.getName(),
+                            new AsyncCallback<Void>() {
 
                                 @Override
                                 public void onFailure(Throwable ex) {
@@ -539,7 +527,7 @@ public class TabIp4Ui extends Composite implements NetworkTab {
             }
 
             for (String dnsEntry : aDnsServers) {
-                if (dnsEntry.trim().length() >= 0 && !dnsEntry.trim().matches(FieldType.IPv4_ADDRESS.getRegex())) {
+                if (dnsEntry.trim().length() >= 0 && !dnsEntry.trim().matches(FieldType.IPV4_ADDRESS.getRegex())) {
                     validDnsList = false;
                     break;
                 }
@@ -564,7 +552,7 @@ public class TabIp4Ui extends Composite implements NetworkTab {
         this.gateway.addMouseOutHandler(event -> resetHelp());
         this.gateway.addValueChangeHandler(event -> {
             setDirty(true);
-            if (!TabIp4Ui.this.gateway.getText().trim().matches(FieldType.IPv4_ADDRESS.getRegex())
+            if (!TabIp4Ui.this.gateway.getText().trim().matches(FieldType.IPV4_ADDRESS.getRegex())
                     && TabIp4Ui.this.gateway.getText().trim().length() > 0) {
                 TabIp4Ui.this.groupGateway.setValidationState(ValidationState.ERROR);
                 TabIp4Ui.this.helpGateway.setText(MSGS.netIPv4InvalidAddress());
@@ -585,7 +573,7 @@ public class TabIp4Ui extends Composite implements NetworkTab {
         this.subnet.addMouseOutHandler(event -> resetHelp());
         this.subnet.addValueChangeHandler(event -> {
             setDirty(true);
-            if (!TabIp4Ui.this.subnet.getText().trim().matches(FieldType.IPv4_ADDRESS.getRegex())
+            if (!TabIp4Ui.this.subnet.getText().trim().matches(FieldType.IPV4_ADDRESS.getRegex())
                     && TabIp4Ui.this.subnet.getText().trim().length() > 0) {
                 TabIp4Ui.this.groupSubnet.setValidationState(ValidationState.ERROR);
                 TabIp4Ui.this.helpSubnet.setText(MSGS.netIPv4InvalidAddress());
@@ -606,7 +594,7 @@ public class TabIp4Ui extends Composite implements NetworkTab {
         this.ip.addMouseOutHandler(event -> resetHelp());
         this.ip.addValueChangeHandler(event -> {
             setDirty(true);
-            if (!TabIp4Ui.this.ip.getText().trim().matches(FieldType.IPv4_ADDRESS.getRegex())
+            if (!TabIp4Ui.this.ip.getText().trim().matches(FieldType.IPV4_ADDRESS.getRegex())
                     || TabIp4Ui.this.ip.getText().trim().length() <= 0) {
                 TabIp4Ui.this.groupIp.setValidationState(ValidationState.ERROR);
                 TabIp4Ui.this.helpIp.setText(MSGS.netIPv4InvalidAddress());
@@ -777,6 +765,7 @@ public class TabIp4Ui extends Composite implements NetworkTab {
                 this.dns.setEnabled(false);
             }
             this.renew.setEnabled(false);
+
             this.configure.setSelectedIndex(this.configure.getItemText(0).equals(IPV4_MODE_DHCP_MESSAGE) ? 0 : 1);
         } else if (this.selectedNetIfConfig != null
                 && this.selectedNetIfConfig.getHwTypeEnum() == GwtNetIfType.LOOPBACK) {

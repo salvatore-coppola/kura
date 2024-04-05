@@ -124,19 +124,19 @@ This project leverages the following third party content.
 * maven/mavencentral/org.apache.servicemix.bundles/org.apache.servicemix.bundles.spring-expression/4.3.20.RELEASE_1, Apache-2.0, approved, CQ16242
 * maven/mavencentral/org.apache.servicemix.bundles/org.apache.servicemix.bundles.spring-jms/4.3.20.RELEASE_1, Apache-2.0, approved, CQ16243
 * maven/mavencentral/org.apache.servicemix.bundles/org.apache.servicemix.bundles.spring-tx/4.3.20.RELEASE_1, Apache-2.0, approved, CQ16244
-* maven/mavencentral/org.bouncycastle/bcpg-jdk18on/1.71, Apache-2.0, approved, #2665
-* maven/mavencentral/org.bouncycastle/bcpkix-jdk18on/1.71, MIT, approved, #2662
-* maven/mavencentral/org.bouncycastle/bcprov-jdk18on/1.71, MIT AND LicenseRef-scancode-ocb-open-source-2013, approved, #2666
-* maven/mavencentral/org.bouncycastle/bctls-jdk18on/1.71, MIT, approved, #2664
-* maven/mavencentral/org.bouncycastle/bcutil-jdk18on/1.71, MIT, approved, #2663
-* maven/mavencentral/org.eclipse.jetty/jetty-continuation/9.4.51.v20230217, EPL-2.0 OR Apache-2.0, approved, rt.jetty
-* maven/mavencentral/org.eclipse.jetty/jetty-http/9.4.51.v20230217, EPL-2.0 OR Apache-2.0, approved, rt.jetty
-* maven/mavencentral/org.eclipse.jetty/jetty-io/9.4.51.v20230217, EPL-2.0 OR Apache-2.0, approved, rt.jetty
-* maven/mavencentral/org.eclipse.jetty/jetty-security/9.4.51.v20230217, EPL-2.0 OR Apache-2.0, approved, rt.jetty
-* maven/mavencentral/org.eclipse.jetty/jetty-server/9.4.51.v20230217, EPL-2.0 OR Apache-2.0, approved, rt.jetty
-* maven/mavencentral/org.eclipse.jetty/jetty-servlet/9.4.51.v20230217, EPL-2.0 OR Apache-2.0, approved, rt.jetty
-* maven/mavencentral/org.eclipse.jetty/jetty-util-ajax/9.4.51.v20230217, EPL-2.0 OR Apache-2.0, approved, rt.jetty
-* maven/mavencentral/org.eclipse.jetty/jetty-util/9.4.51.v20230217, EPL-2.0 OR Apache-2.0, approved, rt.jetty
+* maven/mavencentral/org.bouncycastle/bcpg-jdk18on/1.77, Apache-2.0, approved, #11594
+* maven/mavencentral/org.bouncycastle/bcpkix-jdk18on/1.77, MIT, approved, #11593
+* maven/mavencentral/org.bouncycastle/bcprov-jdk18on/1.77, MIT AND CC0-1.0, approved, #11595
+* maven/mavencentral/org.bouncycastle/bctls-jdk18on/1.77, MIT, approved, #11702
+* maven/mavencentral/org.bouncycastle/bcutil-jdk18on/1.77, MIT, approved, #11596
+* maven/mavencentral/org.eclipse.jetty/jetty-continuation/9.4.53.v20231009, EPL-2.0 OR Apache-2.0, approved, rt.jetty
+* maven/mavencentral/org.eclipse.jetty/jetty-http/9.4.53.v20231009, EPL-2.0 OR Apache-2.0, approved, rt.jetty
+* maven/mavencentral/org.eclipse.jetty/jetty-io/9.4.53.v20231009, EPL-2.0 OR Apache-2.0, approved, rt.jetty
+* maven/mavencentral/org.eclipse.jetty/jetty-security/9.4.53.v20231009, EPL-2.0 OR Apache-2.0, approved, rt.jetty
+* maven/mavencentral/org.eclipse.jetty/jetty-server/9.4.53.v20231009, EPL-2.0 OR Apache-2.0, approved, rt.jetty
+* maven/mavencentral/org.eclipse.jetty/jetty-servlet/9.4.53.v20231009, EPL-2.0 OR Apache-2.0, approved, rt.jetty
+* maven/mavencentral/org.eclipse.jetty/jetty-util-ajax/9.4.53.v20231009, EPL-2.0 OR Apache-2.0, approved, rt.jetty
+* maven/mavencentral/org.eclipse.jetty/jetty-util/9.4.53.v20231009, EPL-2.0 OR Apache-2.0, approved, rt.jetty
 * maven/mavencentral/org.eclipse.milo/sdk-client/0.6.8, EPL-2.0, approved, iot.milo
 * maven/mavencentral/org.eclipse.milo/sdk-core/0.6.8, EPL-2.0, approved, iot.milo
 * maven/mavencentral/org.eclipse.milo/stack-client/0.6.8, EPL-2.0, approved, iot.milo
@@ -191,13 +191,13 @@ This project leverages the following third party content.
 * maven/mavencentral/org.gwtproject/gwt-user/2.10.0, Apache-2.0 AND CC0-1.0, approved, #4958
 * maven/mavencentral/org.gwtbootstrap3/gwtbootstrap3/1.0.1, Apache-2.0 AND MIT AND OFL-1.1, approved, #2020
 * maven/mavencentral/org.xerial/sqlite-jdbc/3.42.0.0, Apache-2.0 AND BSD-2-Clause AND ISC AND Artistic-2.0, approved, #9089
-* maven/mavencentral/org.graalvm.js/js/21.3.5, UPL-1.0 AND (UPL-1.0 AND GPL-2.0-only WITH Classpath-exception-2.0) AND BSD-3-Clause AND MPL-2.0, approved, #6714
-* maven/mavencentral/org.graalvm.js/js-scriptengine/21.3.5, UPL-1.0, approved, #6715
-* maven/mavencentral/org.graalvm.js/js-launcher/21.3.5, UPL-1.0, approved, #6716
-* maven/mavencentral/org.graalvm.sdk/graal-sdk/21.3.5, UPL-1.0, approved, #6717
-* maven/mavencentral/org.graalvm.truffle/truffle-api/21.3.5, UPL-1.0, approved, #6718
-* maven/mavencentral/org.graalvm.regex/regex/21.3.5, UPL-1.0 AND Unicode-TOU, approved, #6719
-* maven/mavencentral/org.graalvm.sdk/launcher-common/21.3.5, UPL-1.0, approved, #6720
+* maven/mavencentral/org.graalvm.js/js/21.3.9, UPL-1.0 AND (UPL-1.0 AND GPL-2.0-only WITH Classpath-exception-2.0) AND BSD-3-Clause AND MPL-2.0, approved, #6714
+* maven/mavencentral/org.graalvm.js/js-scriptengine/21.3.9, UPL-1.0, approved, #6715
+* maven/mavencentral/org.graalvm.js/js-launcher/21.3.9, UPL-1.0, approved, #6716
+* maven/mavencentral/org.graalvm.sdk/graal-sdk/21.3.9, UPL-1.0, approved, #6717
+* maven/mavencentral/org.graalvm.truffle/truffle-api/21.3.9, UPL-1.0, approved, #6718
+* maven/mavencentral/org.graalvm.regex/regex/21.3.9, UPL-1.0 AND Unicode-TOU, approved, #6719
+* maven/mavencentral/org.graalvm.sdk/launcher-common/21.3.9, UPL-1.0, approved, #6720
 * maven/mavencentral/com.ibm.icu/icu4j/72.1, ICU, approved, #4354
 * maven/mavencentral/com.github.hypfvieh/dbus-java/3.3.2, MIT, approved, CQ23190
 * maven/mavencentral/com.github.jnr/jffi/1.3.9, Apache-2.0 OR LGPL-3.0-or-later, approved, CQ23196

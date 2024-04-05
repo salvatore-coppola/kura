@@ -20,7 +20,7 @@
     <parent>
         <groupId>org.eclipse.kura.example</groupId>
         <artifactId>test</artifactId>
-        <version>5.4.0-SNAPSHOT</version>
+        <version>5.5.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>org.eclipse.kura.example.wire.math.singleport.provider.test</artifactId>
@@ -28,6 +28,7 @@
 
     <properties>
 	    <kura.basedir>${project.basedir}/../../..</kura.basedir>
+        <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco-aggregate/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     </properties>
 
     <build>

@@ -725,7 +725,7 @@ public class PortForwardingTabUi extends Composite implements Tab, ButtonBar.Lis
             public List<EditorError> validate(Editor<String> editor, String value) {
                 List<EditorError> result = new ArrayList<>();
                 if (PortForwardingTabUi.this.lan.getText().trim().isEmpty()
-                        || !PortForwardingTabUi.this.lan.getText().trim().matches(FieldType.IPv4_ADDRESS.getRegex())) {
+                        || !PortForwardingTabUi.this.lan.getText().trim().matches(FieldType.IPV4_ADDRESS.getRegex())) {
                     result.add(new BasicEditorError(PortForwardingTabUi.this.lan, value,
                             MSGS.firewallPortForwardFormLanAddressErrorMessage()));
                 }
@@ -791,7 +791,7 @@ public class PortForwardingTabUi extends Composite implements Tab, ButtonBar.Lis
                 List<EditorError> result = new ArrayList<>();
                 if (!PortForwardingTabUi.this.permittedNw.getText().trim().isEmpty()
                         && !PortForwardingTabUi.this.permittedNw.getText().trim()
-                                .matches(FieldType.NETWORK.getRegex())) {
+                                .matches(FieldType.IPV4_CIDR_NOTATION.getRegex())) {
                     result.add(new BasicEditorError(PortForwardingTabUi.this.permittedNw, value,
                             MSGS.firewallPortForwardFormPermittedNetworkErrorMessage()));
                 }

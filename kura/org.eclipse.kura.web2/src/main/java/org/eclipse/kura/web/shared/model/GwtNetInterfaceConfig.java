@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011, 2023 Eurotech and/or its affiliates and others
+ * Copyright (c) 2011, 2024 Eurotech and/or its affiliates and others
  * 
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -9,6 +9,7 @@
  * 
  * Contributors:
  *  Eurotech
+ *  Areti
  *******************************************************************************/
 package org.eclipse.kura.web.shared.model;
 
@@ -125,6 +126,14 @@ public class GwtNetInterfaceConfig extends KuraBaseModel implements Serializable
     public void setReadOnlyDnsServers(String dnsServers) {
         set("dnsReadOnlyServers", dnsServers);
     }
+    
+    public Integer getMtu() {
+        return get("mtu");
+    }
+
+    public void setMtu(Integer mtu) {
+        set("mtu", mtu);
+    }
 
     public void setHwState(String hwState) {
         set("hwState", hwState);
@@ -228,6 +237,14 @@ public class GwtNetInterfaceConfig extends KuraBaseModel implements Serializable
 
     public void setHwRssi(String rssi) {
         set("hwRssi", rssi);
+    }
+
+    public String getCurrentHwWifiChannel() {
+        return get("currentHwWifiChannel");
+    }
+
+    public void setCurrentHwWifiChannel(String channel) {
+        set("currentHwWifiChannel", channel);
     }
 
     public GwtNetRouterMode getRouterModeEnum() {
@@ -377,6 +394,22 @@ public class GwtNetInterfaceConfig extends KuraBaseModel implements Serializable
 
     public void setIpv6ReadOnlyDnsServers(String dnsServers) {
         set("ipv6.dnsReadOnly", dnsServers);
+    }
+
+    public Integer getIpv6Mtu() {
+        return get("ipv6.mtu");
+    }
+
+    public void setIpv6Mtu(Integer mtu) {
+    	set("ipv6.mtu", mtu);
+    }
+    
+    public Integer getPromisc() {
+        return get("promisc");
+    }
+
+    public void setPromisc(Integer promisc) {
+        set("promisc", promisc);
     }
 
     @Override

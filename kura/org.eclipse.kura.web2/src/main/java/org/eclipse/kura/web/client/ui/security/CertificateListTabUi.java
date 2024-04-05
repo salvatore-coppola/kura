@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2020, 2021 Eurotech and/or its affiliates and others
+ * Copyright (c) 2020, 2023 Eurotech and/or its affiliates and others
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -12,11 +12,13 @@
  *******************************************************************************/
 package org.eclipse.kura.web.client.ui.security;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.eclipse.kura.web.client.messages.Messages;
 import org.eclipse.kura.web.client.ui.AlertDialog;
@@ -173,6 +175,15 @@ public class CertificateListTabUi extends Composite implements Tab, CertificateM
         };
         this.certificatesGrid.addColumn(col1, MSGS.certificateAlias());
         col1.setSortable(true);
+
+        TextColumn<GwtKeystoreEntry> col1bis = new TextColumn<GwtKeystoreEntry>() {
+
+            @Override
+            public String getValue(GwtKeystoreEntry object) {
+                return object.getDistinguishedNames();
+            }
+        };
+        this.certificatesGrid.addColumn(col1bis, MSGS.certificateDNs());
 
         TextColumn<GwtKeystoreEntry> col2 = new TextColumn<GwtKeystoreEntry>() {
 
@@ -372,16 +383,29 @@ public class CertificateListTabUi extends Composite implements Tab, CertificateM
         this.certAddModal.setTitle("Add Certificate");
         this.certAddModalBody.clear();
 
-        List<String> storageAliases = this.certificatesDataProvider.getList().stream().map(GwtKeystoreEntry::getAlias)
-                .collect(Collectors.toList());
-
-        this.keyPairTabUi = new KeyPairTabUi(selectedCertType.getType(), this.pids, storageAliases, this,
+        this.keyPairTabUi = new KeyPairTabUi(selectedCertType.getType(), this.pids, getStorageAliases(), this,
                 this.resetModalButton, this.applyModalButton, this.closeModalButton);
         this.certAddModalBody.add(keyPairTabUi);
 
         this.nextStepButton.setVisible(false);
         this.resetModalButton.setVisible(true);
         this.applyModalButton.setVisible(true);
+    }
+
+    private Map<String, List<String>> getStorageAliases() {
+        Map<String, List<String>> storageAliases = new HashMap<>();
+
+        this.certificatesDataProvider.getList().forEach(e -> {
+            if (storageAliases.containsKey(e.getKeystoreName())) {
+                storageAliases.get(e.getKeystoreName()).add(e.getAlias());
+            } else {
+                List<String> aliases = new ArrayList<>();
+                aliases.add(e.getAlias());
+                storageAliases.put(e.getKeystoreName(), aliases);
+            }
+        });
+
+        return storageAliases;
     }
 
     private void uninstall(final GwtKeystoreEntry selected) {

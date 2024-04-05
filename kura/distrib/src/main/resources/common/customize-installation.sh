@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#  Copyright (c) 2023 Eurotech and/or its affiliates and others
+#  Copyright (c) 2023, 2024 Eurotech and/or its affiliates and others
 #
 #  This program and the accompanying materials are made
 #  available under the terms of the Eclipse Public License 2.0
@@ -12,8 +12,36 @@
 #   Eurotech
 #
 
+setup_libudev() {
+    # create soft link for libudev.so.0 to make it retrocompatible
+    # https://unix.stackexchange.com/questions/156776/arch-ubuntu-so-whats-the-deal-with-libudev-so-0
+    if [ ! -f /lib/libudev.so.0 ] && [ -f /lib/libudev.so.1 ]; then
+        ln -sf /lib/libudev.so.1 /lib/libudev.so.0
+    fi
+
+    if uname -m | grep -q arm ; then
+        destination="/usr/lib/arm-linux-gnueabihf/libudev.so.1"
+        link_name="/usr/lib/arm-linux-gnueabihf/libudev.so.0"
+    fi
+    if uname -m | grep -q aarch ; then
+        destination="/usr/lib/aarch64-linux-gnu/libudev.so.1"
+        link_name="/usr/lib/aarch64-linux-gnu/libudev.so.0"
+    fi
+    if uname -m | grep -q x86_64 ; then
+         destination="/usr/lib/x86_64-linux-gnu/libudev.so.1"
+        link_name="/usr/lib/x86_64-linux-gnu/libudev.so.0"
+    fi
+
+    if [ -f "${destination}" ] && [ ! -f "${link_name}" ]; then
+        echo "Setting up symlink ${link_name} -> ${destination}"
+        ln -sf "${destination}" "${link_name}"
+    fi
+}
+
 KURA_PLATFORM=$( uname -m )
 sed -i "s/kura_platform/${KURA_PLATFORM}/g" "/opt/eclipse/kura/framework/kura.properties"
+
+setup_libudev
 
 BOARD="generic-device"
 
@@ -61,4 +89,23 @@ if [ ${BOARD} = "generic-device" ]; then
     else
         echo "python3 not found. snapshot_0.xml, and iptables.init files may have wrong interface names. Default is eth0 and wlan0. Please correct them manually if they mismatch."
     fi
+    
+    # dynamic RAM assignment
+    RAM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+    RAM_MB=$(expr $RAM_KB / 1024)
+    RAM_MB_FOR_KURA=$(expr $RAM_MB / 4)
+
+    if [ "$RAM_MB" -lt 1024 ]; then
+        RAM_REPLACEMENT_STRING="-Xms256m -Xmx256m"
+    fi
+
+    echo "Setting kura RAM to ${RAM_REPLACEMENT_STRING}"
+    start_scripts_to_change=("start_kura.sh" "start_kura_debug.sh" "start_kura_background.sh")
+
+    RAM_REPLACEMENT_STRING="-Xms${RAM_MB_FOR_KURA}m -Xmx${RAM_MB_FOR_KURA}m"
+    for installer_name in "${start_scripts_to_change[@]}"; do
+        echo "Updating RAM values for $installer_name"
+        sed -i "s/-Xms[0-9]*m -Xmx[0-9]*m/$RAM_REPLACEMENT_STRING/g" "/opt/eclipse/kura/bin/$installer_name"
+    done
+    
 fi

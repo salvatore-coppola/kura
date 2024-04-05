@@ -123,7 +123,7 @@ public class BirthMessagesTest {
         whenDeactivate();
 
         thenNoExceptionOccurred();
-        thenBirthIsPublishedImmediately(BIRTH_TOPIC_PREFIX + CloudServiceOptions.getTopicDisconnectSuffix());
+        thenDisconnectIsPublishedImmediately(BIRTH_TOPIC_PREFIX + CloudServiceOptions.getTopicDisconnectSuffix());
     }
 
     @Test
@@ -180,7 +180,7 @@ public class BirthMessagesTest {
         whenOnDisconnecting();
 
         thenNoExceptionOccurred();
-        thenBirthIsPublishedImmediately(BIRTH_TOPIC_PREFIX + CloudServiceOptions.getTopicDisconnectSuffix());
+        thenDisconnectIsPublishedImmediately(BIRTH_TOPIC_PREFIX + CloudServiceOptions.getTopicDisconnectSuffix());
     }
 
     @Test
@@ -394,11 +394,16 @@ public class BirthMessagesTest {
     private void thenBirthIsPublishedAfter(long delayMillis, String expectedTopic) throws KuraException {
         verify(this.dataService, after(delayMillis).never()).publish(eq(expectedTopic), any(), eq(0), eq(false),
                 eq(0));
-        verify(this.dataService, after(delayMillis + SLACK_DELAY).times(1)).publish(eq(expectedTopic), any(), eq(0),
+        verify(this.dataService, after(delayMillis + SLACK_DELAY).times(1)).publish(eq(expectedTopic), any(), eq(1),
                 eq(false), eq(0));
     }
 
     private void thenBirthIsPublishedImmediately(String expectedTopic) throws KuraException {
+        verify(this.dataService, timeout(SLACK_DELAY).times(1)).publish(eq(expectedTopic), any(), eq(1), eq(false),
+                eq(0));
+    }
+
+    private void thenDisconnectIsPublishedImmediately(String expectedTopic) throws KuraException {
         verify(this.dataService, timeout(SLACK_DELAY).times(1)).publish(eq(expectedTopic), any(), eq(0), eq(false),
                 eq(0));
     }
@@ -432,7 +437,7 @@ public class BirthMessagesTest {
         when(systemService.getOsArch()).thenReturn("x86");
         when(systemService.getOsgiFwName()).thenReturn("test-osgi-fm");
         when(systemService.getOsgiFwVersion()).thenReturn("test-osgi-vers");
-        
+
         SystemAdminService systemAdminService = mock(SystemAdminService.class);
         when(systemAdminService.getUptime()).thenReturn("1 day");
 
@@ -445,7 +450,7 @@ public class BirthMessagesTest {
                 }
                 return null;
             }
-            
+
         };
 
         EventAdmin eventAdmin = mock(EventAdmin.class);
@@ -482,7 +487,6 @@ public class BirthMessagesTest {
         ComponentContext componentContext = mock(ComponentContext.class);
         when(componentContext.getProperties()).thenReturn(componentContextProperties);
         when(componentContext.getBundleContext()).thenReturn(bundleContext);
-        
 
         return componentContext;
     }

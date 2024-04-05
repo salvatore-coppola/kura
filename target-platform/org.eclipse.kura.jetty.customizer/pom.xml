@@ -19,11 +19,11 @@
     <parent>
         <groupId>org.eclipse.kura</groupId>
         <artifactId>target-platform</artifactId>
-        <version>5.4.0-SNAPSHOT</version>
+        <version>5.5.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>org.eclipse.kura.jetty.customizer</artifactId>
-    <version>1.4.0-SNAPSHOT</version>
+    <version>1.5.0-SNAPSHOT</version>
     <packaging>bundle</packaging>
 
     <properties>
@@ -39,12 +39,12 @@
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-server</artifactId>
-            <version>9.4.51.v20230217</version>
+            <version>9.4.53.v20231009</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-servlet</artifactId>
-            <version>9.4.51.v20230217</version>
+            <version>9.4.53.v20231009</version>
         </dependency>
     </dependencies>
 

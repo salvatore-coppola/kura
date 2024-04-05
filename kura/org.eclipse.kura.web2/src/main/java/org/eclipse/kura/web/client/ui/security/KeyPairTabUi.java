@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2020, 2021 Eurotech and/or its affiliates and others
+ * Copyright (c) 2020, 2024 Eurotech and/or its affiliates and others
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -13,6 +13,7 @@
 package org.eclipse.kura.web.client.ui.security;
 
 import java.util.List;
+import java.util.Map;
 
 import org.eclipse.kura.web.client.messages.Messages;
 import org.eclipse.kura.web.client.ui.Tab;
@@ -84,7 +85,10 @@ public class KeyPairTabUi extends Composite implements Tab {
     private final Button applyButton;
     private final Button closeButton;
 
-    public KeyPairTabUi(final Type type, final List<String> keyStorePids, final List<String> usedAliases,
+    private Validator<String> storageAliasValidator;
+    private Map<String, List<String>> usedAliases;
+
+    public KeyPairTabUi(final Type type, final List<String> keyStorePids, final Map<String, List<String>> usedAliases,
             final CertificateModalListener listener, Button resetButton, Button applyButton, Button closeButton) {
         this.listener = listener;
         this.type = type;
@@ -93,8 +97,10 @@ public class KeyPairTabUi extends Composite implements Tab {
         this.resetButton = resetButton;
         this.closeButton = closeButton;
 
+        this.usedAliases = usedAliases;
+
         initWidget(uiBinder.createAndBindUi(this));
-        initForm(keyStorePids, usedAliases);
+        initForm(keyStorePids);
 
         setDirty(false);
     }
@@ -129,7 +135,7 @@ public class KeyPairTabUi extends Composite implements Tab {
         }
     }
 
-    private void initForm(final List<String> keyStorePids, List<String> usedAliases) {
+    private void initForm(final List<String> keyStorePids) {
         StringBuilder title = new StringBuilder();
         title.append("<p style=\"margin-right: 5%;\">");
         title.append(
@@ -150,10 +156,22 @@ public class KeyPairTabUi extends Composite implements Tab {
         this.storageAliasInput.addValidator(GwtValidators.stringLength(ALIAS_MAX_LENGTH,
                 MSGS.certificateAliasMaxLength(String.valueOf(ALIAS_MAX_LENGTH))));
         this.storageAliasInput.setMaxLength(ALIAS_MAX_LENGTH);
-        this.storageAliasInput.addValidator(GwtValidators.stringNotInList(usedAliases, MSGS.certificateAliasUsed()));
 
-        this.certificateInput.addValidator(notEmptyValidator);
-        this.certificateInput.addValidator(GwtValidators.pem(MSGS.securityCertificateFormat()));
+        storageAliasValidator = GwtValidators.stringNotInList(this.usedAliases.get(this.pidListBox.getSelectedValue()),
+                MSGS.certificateAliasUsed());
+        this.storageAliasInput.addValidator(storageAliasValidator);
+
+        this.pidListBox.addChangeHandler(e -> {
+            if (this.storageAliasValidator != null) {
+                this.storageAliasInput.removeValidator(this.storageAliasValidator);
+            }
+
+            List<String> listOfUsedAliasForPid = this.usedAliases.get(this.pidListBox.getSelectedValue());
+            storageAliasValidator = GwtValidators.stringNotInList(listOfUsedAliasForPid, MSGS.certificateAliasUsed());
+            this.storageAliasInput.addValidator(storageAliasValidator);
+
+            this.storageAliasInput.validate();
+        });
 
         this.storageAliasInput.addKeyUpHandler(e -> {
             this.storageAliasInput.validate();
@@ -164,6 +182,16 @@ public class KeyPairTabUi extends Composite implements Tab {
             this.storageAliasInput.validate();
             setDirty(true);
         });
+        
+        this.certificateInput.addValidator(notEmptyValidator);
+
+        if (this.type == Type.KEY_PAIR) {
+            this.certificateInput.addValidator(GwtValidators.pem(MSGS.securityCertificateFormat()));
+            this.certificateInput.setPlaceholder(MSGS.settingsPublicCertChainWarning());
+        } else {
+            this.certificateInput.addValidator(GwtValidators.singlePem(MSGS.securityCertificateFormatOneCertificate()));
+            this.certificateInput.setPlaceholder(MSGS.settingsPublicCertWarning());
+        }
 
         this.certificateInput.addKeyUpHandler(e -> {
             this.certificateInput.validate();

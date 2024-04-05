@@ -22,11 +22,11 @@
     <parent>
         <groupId>org.eclipse.kura</groupId>
         <artifactId>kura</artifactId>
-        <version>5.4.0-SNAPSHOT</version>
+        <version>5.5.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>org.eclipse.kura.driver.opcua.provider</artifactId>
-    <version>1.4.0-SNAPSHOT</version>
+    <version>1.5.0-SNAPSHOT</version>
     <packaging>eclipse-plugin</packaging>
 
     <properties>
@@ -37,7 +37,7 @@
         <com.digitalpetri.netty.netty-channel-fsm.version>0.8</com.digitalpetri.netty.netty-channel-fsm.version>
         <com.digitalpetri.fsm.strict-machine.version>0.6</com.digitalpetri.fsm.strict-machine.version>
         <com.google.guava.failureaccess.version>1.0</com.google.guava.failureaccess.version>
-        <org.bouncycastle.version>1.71</org.bouncycastle.version>
+        <org.bouncycastle.version>1.77</org.bouncycastle.version>
         <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/../test/org.eclipse.kura.internal.driver.opcua.test/target/site/jacoco-aggregate/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     </properties>
 
