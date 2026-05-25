@@ -1,0 +1,239 @@
+/*******************************************************************************
+ * Copyright (c) 2024, 2025 Eurotech and/or its affiliates and others
+ *
+ * This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License 2.0
+ * which is available at https://www.eclipse.org/legal/epl-2.0/
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ *
+ * Contributors:
+ *  Eurotech
+ ******************************************************************************/
+package org.eclipse.kura.internal.rest.identity.provider;
+
+import org.eclipse.kura.KuraErrorCode;
+import org.eclipse.kura.KuraException;
+import org.eclipse.kura.cloudconnection.request.RequestHandler;
+import org.eclipse.kura.cloudconnection.request.RequestHandlerRegistry;
+import org.eclipse.kura.crypto.CryptoService;
+import org.eclipse.kura.identity.PasswordStrengthVerificationService;
+import org.eclipse.kura.internal.rest.identity.provider.dto.PermissionDTO;
+import org.eclipse.kura.internal.rest.identity.provider.dto.UserConfigDTO;
+import org.eclipse.kura.internal.rest.identity.provider.dto.UserDTO;
+import org.eclipse.kura.internal.rest.identity.provider.dto.ValidatorOptionsDTO;
+import org.eclipse.kura.request.handler.jaxrs.DefaultExceptionHandler;
+import org.eclipse.kura.request.handler.jaxrs.JaxRsRequestHandlerProxy;
+import org.eclipse.kura.util.validation.ValidatorOptions;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.useradmin.Role;
+import org.osgi.service.useradmin.UserAdmin;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import jakarta.annotation.security.RolesAllowed;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
+
+@SuppressWarnings("restriction")
+@Path("identity/v1")
+@Component(immediate = true, property = {
+        "kura.service.pid=org.eclipse.kura.internal.rest.identity.provider.IdentityRestServiceV1",
+        "osgi.jakartars.resource=true" }, service = IdentityRestServiceV1.class)
+public class IdentityRestServiceV1 {
+
+    private static final Logger logger = LoggerFactory.getLogger(IdentityRestServiceV1.class);
+
+    private static final String MQTT_APP_ID = "IDN-V1";
+
+    private static final String DEBUG_MESSAGE = "Processing request for method '{}'";
+
+    private static final String REST_ROLE_NAME = "identity";
+    private static final String KURA_PERMISSION_REST_ROLE = "kura.permission.rest." + REST_ROLE_NAME;
+
+    private final RequestHandler requestHandler = new JaxRsRequestHandlerProxy(this);
+
+    private LegacyIdentityService legacyIdentityService;
+
+    private CryptoService cryptoService;
+    private UserAdmin userAdmin;
+    private PasswordStrengthVerificationService passwordStrengthVerificationService;
+
+    @Reference
+    public void bindCryptoService(CryptoService cryptoService) {
+        this.cryptoService = cryptoService;
+    }
+
+    @Reference
+    public void bindPasswordStrengthVerificationService(
+            PasswordStrengthVerificationService passwordStrengthVerificationService) {
+        this.passwordStrengthVerificationService = passwordStrengthVerificationService;
+    }
+
+    @Reference
+    public void bindUserAdmin(UserAdmin userAdmin) {
+        this.userAdmin = userAdmin;
+        this.userAdmin.createRole(KURA_PERMISSION_REST_ROLE, Role.GROUP);
+    }
+
+    @Reference(policy = ReferencePolicy.DYNAMIC, cardinality = ReferenceCardinality.MULTIPLE)
+    public void bindRequestHandlerRegistry(RequestHandlerRegistry registry) {
+        try {
+            registry.registerRequestHandler(MQTT_APP_ID, this.requestHandler);
+        } catch (final Exception e) {
+            logger.warn("Failed to register {} request handler", MQTT_APP_ID, e);
+        }
+    }
+
+    public void unbindRequestHandlerRegistry(RequestHandlerRegistry registry) {
+        try {
+            registry.unregister(MQTT_APP_ID);
+        } catch (final Exception e) {
+            logger.warn("Failed to unregister {} request handler", MQTT_APP_ID, e);
+        }
+    }
+
+    // Added mainly for testing purposes. Currently the service is created by activate()
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL)
+    public void bindLegacyIdentityService(LegacyIdentityService legacyIdentityService) {
+        this.legacyIdentityService = legacyIdentityService;
+    }
+
+    @Activate
+    public void activate() {
+        // create only if not externally set. Added mainly for testing purposes.
+        if (this.legacyIdentityService == null) {
+            this.legacyIdentityService = new LegacyIdentityService(this.cryptoService, this.userAdmin,
+                    this.passwordStrengthVerificationService);
+        }
+    }
+
+    @POST
+    @RolesAllowed(REST_ROLE_NAME)
+    @Path("/identities")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response createUser(final UserDTO userName) {
+        try {
+            logger.debug(DEBUG_MESSAGE, "createUser");
+            this.legacyIdentityService.createUser(userName);
+        } catch (Exception e) {
+            throw DefaultExceptionHandler.toWebApplicationException(e);
+        }
+
+        return Response.ok().build();
+    }
+
+    @PUT
+    @RolesAllowed(REST_ROLE_NAME)
+    @Path("/identities")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response updateUser(final UserDTO user) {
+        try {
+            logger.debug(DEBUG_MESSAGE, "updateUser");
+            this.legacyIdentityService.updateUser(user);
+        } catch (Exception e) {
+            throw DefaultExceptionHandler.toWebApplicationException(e);
+        }
+
+        return Response.ok().build();
+    }
+
+    @POST
+    @RolesAllowed(REST_ROLE_NAME)
+    @Path("/identities/byName")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public UserDTO getUser(final UserDTO userName) {
+        try {
+            logger.debug(DEBUG_MESSAGE, "getUser");
+            return this.legacyIdentityService.getUser(userName.getUserName());
+        } catch (KuraException e) {
+            if (e.getCode().equals(KuraErrorCode.NOT_FOUND)) {
+                throw DefaultExceptionHandler.buildWebApplicationException(Status.NOT_FOUND, "Identity does not exist");
+            } else {
+                throw DefaultExceptionHandler.toWebApplicationException(e);
+            }
+        } catch (Exception e) {
+            throw DefaultExceptionHandler.toWebApplicationException(e);
+        }
+
+    }
+
+    @DELETE
+    @RolesAllowed(REST_ROLE_NAME)
+    @Path("/identities")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response deleteUser(final UserDTO userName) {
+        try {
+            logger.debug(DEBUG_MESSAGE, "deleteUser");
+            this.legacyIdentityService.deleteUser(userName.getUserName());
+        } catch (KuraException e) {
+            if (e.getCode().equals(KuraErrorCode.NOT_FOUND)) {
+                throw DefaultExceptionHandler.buildWebApplicationException(Status.NOT_FOUND, "Identity does not exist");
+            } else {
+                throw DefaultExceptionHandler.toWebApplicationException(e);
+            }
+        } catch (Exception e) {
+            throw DefaultExceptionHandler.toWebApplicationException(e);
+        }
+
+        return Response.ok().build();
+    }
+
+    @GET
+    @Path("/definedPermissions")
+    @Produces(MediaType.APPLICATION_JSON)
+    public PermissionDTO getDefinedPermissions() {
+        try {
+            logger.debug(DEBUG_MESSAGE, "getDefinedPermissions");
+            return new PermissionDTO(this.legacyIdentityService.getDefinedPermissions());
+        } catch (Exception e) {
+            throw DefaultExceptionHandler.toWebApplicationException(e);
+        }
+    }
+
+    @GET
+    @RolesAllowed(REST_ROLE_NAME)
+    @Path("/identities")
+    @Produces(MediaType.APPLICATION_JSON)
+    public UserConfigDTO getUserConfig() {
+        try {
+            logger.debug(DEBUG_MESSAGE, "getUserConfig");
+            UserConfigDTO userConfig = new UserConfigDTO();
+            userConfig.setUserConfig(this.legacyIdentityService.getUserConfig());
+            return userConfig;
+        } catch (Exception e) {
+            throw DefaultExceptionHandler.toWebApplicationException(e);
+        }
+    }
+
+    @GET
+    @Path("/passwordRequirements")
+    @Produces(MediaType.APPLICATION_JSON)
+    public ValidatorOptionsDTO getValidatorOptions() {
+        try {
+            logger.debug(DEBUG_MESSAGE, "getValidatorOptions");
+            ValidatorOptions validatorOptions = this.legacyIdentityService.getValidatorOptions();
+            return new ValidatorOptionsDTO(//
+                    validatorOptions.isPasswordMinimumLength(), //
+                    validatorOptions.isPasswordRequireDigits(), //
+                    validatorOptions.isPasswordRequireBothCases(), //
+                    validatorOptions.isPasswordRequireSpecialChars());
+        } catch (Exception e) {
+            throw DefaultExceptionHandler.toWebApplicationException(e);
+        }
+    }
+
+}

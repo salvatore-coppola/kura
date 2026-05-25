@@ -2,14 +2,14 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Kura Asset Accessor Provider
 Bundle-SymbolicName: org.eclipse.kura.useradmin.store;singleton:=true
-Bundle-Version: 1.5.0.qualifier
+Bundle-Version: 2.0.0.qualifier
 Bundle-Vendor: Eclipse Kura
 Bundle-License: Eclipse Public License v2.0
 Bundle-Category: Asset-Driver Management
-Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"
+Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=21))"
 Service-Component: OSGI-INF/*.xml
 Bundle-ActivationPolicy: lazy
-Import-Package: com.eclipsesource.json;version="0.9.5",
+Import-Package: com.eclipsesource.json;version="0.9.0",
  org.apache.felix.useradmin;version="[1.0,1.1)",
  org.eclipse.kura;version="1.6.0",
  org.eclipse.kura.configuration;version="1.2.0",

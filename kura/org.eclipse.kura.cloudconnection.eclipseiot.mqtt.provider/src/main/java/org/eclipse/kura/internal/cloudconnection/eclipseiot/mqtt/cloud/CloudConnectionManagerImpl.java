@@ -1,15 +1,15 @@
 /*******************************************************************************
- * Copyright (c) 2011, 2024 Eurotech and/or its affiliates and others
- * 
+ * Copyright (c) 2011, 2025 Eurotech and/or its affiliates and others
+ *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
  * which is available at https://www.eclipse.org/legal/epl-2.0/
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0
- * 
+ *
  * Contributors:
  *  Eurotech
- *******************************************************************************/
+ ******************************************************************************/
 package org.eclipse.kura.internal.cloudconnection.eclipseiot.mqtt.cloud;
 
 import static java.util.Objects.nonNull;
@@ -72,7 +72,6 @@ import org.eclipse.kura.marshalling.Unmarshaller;
 import org.eclipse.kura.message.KuraApplicationTopic;
 import org.eclipse.kura.message.KuraPayload;
 import org.eclipse.kura.net.NetworkService;
-import org.eclipse.kura.net.modem.ModemReadyEvent;
 import org.eclipse.kura.net.status.NetworkInterfaceStatus;
 import org.eclipse.kura.net.status.NetworkInterfaceType;
 import org.eclipse.kura.net.status.NetworkStatusService;
@@ -82,6 +81,8 @@ import org.eclipse.kura.position.PositionLockedEvent;
 import org.eclipse.kura.position.PositionService;
 import org.eclipse.kura.system.SystemAdminService;
 import org.eclipse.kura.system.SystemService;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
@@ -99,8 +100,6 @@ public class CloudConnectionManagerImpl
     private static final String KURA_PAYLOAD = "KuraPayload";
 
     private static final String SETUP_CLOUD_SERVICE_CONNECTION_ERROR_MESSAGE = "Cannot setup cloud service connection";
-
-    private static final String ERROR = "ERROR";
 
     private static final Logger logger = LoggerFactory.getLogger(CloudConnectionManagerImpl.class);
 
@@ -120,8 +119,8 @@ public class CloudConnectionManagerImpl
     private DataService dataService;
     private SystemService systemService;
     private SystemAdminService systemAdminService;
-    private NetworkService networkService;
-    private PositionService positionService;
+    private Optional<NetworkService> networkService = Optional.empty();
+    private Optional<PositionService> positionService = Optional.empty();
     private EventAdmin eventAdmin;
     private CertificatesService certificatesService;
     private Unmarshaller jsonUnmarshaller;
@@ -207,30 +206,30 @@ public class CloudConnectionManagerImpl
     }
 
     public void setNetworkService(NetworkService networkService) {
-        this.networkService = networkService;
+        this.networkService = Optional.of(networkService);
     }
 
     public void unsetNetworkService(NetworkService networkService) {
-        if (this.networkService.equals(networkService)) {
-            this.networkService = null;
+        if (this.networkService.isPresent() && this.networkService.get().equals(networkService)) {
+            this.networkService = Optional.empty();
         }
     }
 
-    public NetworkService getNetworkService() {
+    public Optional<NetworkService> getNetworkService() {
         return this.networkService;
     }
 
     public void setPositionService(PositionService positionService) {
-        this.positionService = positionService;
+        this.positionService = Optional.of(positionService);
     }
 
     public void unsetPositionService(PositionService positionService) {
-        if (this.positionService.equals(positionService)) {
-            this.positionService = null;
+        if (this.positionService.isPresent() && this.positionService.get().equals(positionService)) {
+            this.positionService = Optional.empty();
         }
     }
 
-    public PositionService getPositionService() {
+    public Optional<PositionService> getPositionService() {
         return this.positionService;
     }
 
@@ -292,8 +291,7 @@ public class CloudConnectionManagerImpl
         //
         // install event listener for GPS locked event
         Dictionary<String, Object> props = new Hashtable<>();
-        String[] eventTopics = { PositionLockedEvent.POSITION_LOCKED_EVENT_TOPIC,
-                ModemReadyEvent.MODEM_EVENT_READY_TOPIC, EVENT_TOPIC_DEPLOYMENT_ADMIN_INSTALL,
+        String[] eventTopics = { PositionLockedEvent.POSITION_LOCKED_EVENT_TOPIC, EVENT_TOPIC_DEPLOYMENT_ADMIN_INSTALL,
                 EVENT_TOPIC_DEPLOYMENT_ADMIN_UNINSTALL };
         props.put(EventConstants.EVENT_TOPIC, eventTopics);
         this.cloudServiceRegistration = this.ctx.getBundleContext().registerService(EventHandler.class.getName(), this,
@@ -348,7 +346,7 @@ public class CloudConnectionManagerImpl
         this.systemService = null;
         this.systemAdminService = null;
         this.networkService = null;
-        this.positionService = null;
+        this.positionService = Optional.empty();
         this.eventAdmin = null;
 
         this.cloudServiceRegistration.unregister();
@@ -363,13 +361,8 @@ public class CloudConnectionManagerImpl
             return;
         }
 
-        if (ModemReadyEvent.MODEM_EVENT_READY_TOPIC.contains(topic)) {
-            handleModemReadyEvent(event);
-            return;
-        }
-
-        if ((EVENT_TOPIC_DEPLOYMENT_ADMIN_INSTALL.equals(topic)
-                || EVENT_TOPIC_DEPLOYMENT_ADMIN_UNINSTALL.equals(topic)) && this.dataService.isConnected()) {
+        if ((EVENT_TOPIC_DEPLOYMENT_ADMIN_INSTALL.equals(topic) || EVENT_TOPIC_DEPLOYMENT_ADMIN_UNINSTALL.equals(topic))
+                && this.dataService.isConnected()) {
             logger.debug("CloudConnectionManagerImpl: received install/uninstall event, publishing BIRTH.");
             tryPublishBirthCertificate(false);
         }
@@ -382,35 +375,6 @@ public class CloudConnectionManagerImpl
         if (this.dataService.isConnected() && this.options.getRepubBirthCertOnGpsLock()) {
             tryPublishBirthCertificate(false);
         }
-    }
-
-    private void handleModemReadyEvent(Event event) {
-        logger.info("Handling ModemReadyEvent");
-        ModemReadyEvent modemReadyEvent = (ModemReadyEvent) event;
-        // keep these identifiers around until we can publish the certificate
-        this.imei = (String) modemReadyEvent.getProperty(ModemReadyEvent.IMEI);
-        this.imsi = (String) modemReadyEvent.getProperty(ModemReadyEvent.IMSI);
-        this.iccid = (String) modemReadyEvent.getProperty(ModemReadyEvent.ICCID);
-        this.rssi = (String) modemReadyEvent.getProperty(ModemReadyEvent.RSSI);
-        this.modemFwVer = (String) modemReadyEvent.getProperty(ModemReadyEvent.FW_VERSION);
-        logger.trace("handleEvent() :: IMEI={}", this.imei);
-        logger.trace("handleEvent() :: IMSI={}", this.imsi);
-        logger.trace("handleEvent() :: ICCID={}", this.iccid);
-        logger.trace("handleEvent() :: RSSI={}", this.rssi);
-        logger.trace("handleEvent() :: FW_VERSION={}", this.modemFwVer);
-
-        if (this.dataService.isConnected() && this.options.getRepubBirthCertOnModemDetection() && isModemInfoValid()) {
-            logger.debug("handleEvent() :: publishing BIRTH certificate ...");
-            tryPublishBirthCertificate(false);
-        }
-    }
-
-    private boolean isModemInfoValid(final String modemInfo) {
-        return !(modemInfo == null || modemInfo.length() == 0 || modemInfo.equals(ERROR));
-    }
-
-    public boolean isModemInfoValid() {
-        return isModemInfoValid(this.imei) && isModemInfoValid(this.imsi) && isModemInfoValid(this.iccid);
     }
 
     private void tryPublishBirthCertificate(boolean isNewConnection) {
@@ -655,6 +619,11 @@ public class CloudConnectionManagerImpl
     }
 
     private void publishBirthCertificate(boolean isNewConnection) throws KuraException {
+        if (isFrameworkStopping()) {
+            logger.info("framework is stopping.. not republishing birth certificate");
+            return;
+        }
+
         readModemProfile();
         LifecycleMessage birthToPublish = new LifecycleMessage(this.options, this).asBirthCertificateMessage();
 
@@ -859,6 +828,21 @@ public class CloudConnectionManagerImpl
     @Override
     public void unregisterCloudDeliveryListener(CloudDeliveryListener cloudDeliveryListener) {
         this.registeredCloudDeliveryListeners.remove(cloudDeliveryListener);
+    }
+
+    private boolean isFrameworkStopping() {
+        try {
+            final Bundle ownBundle = FrameworkUtil.getBundle(CloudConnectionManagerImpl.class);
+
+            if (ownBundle == null) {
+                return false; // not running in an OSGi framework? e.g. unit test
+            }
+
+            return ownBundle.getBundleContext().getBundle(0).getState() == Bundle.STOPPING;
+        } catch (final Exception e) {
+            logger.warn("unexpected exception while checking if framework is shutting down", e);
+            return false;
+        }
     }
 
     private void readModemProfile() {

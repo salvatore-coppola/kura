@@ -1,0 +1,16 @@
+name: "Force merge automation"
+description: Merge a pull request when N committers post a comment with the command /force-merge
+
+on:
+  issue_comment:
+    types: [created, edited, deleted]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  call-workflow-in-public-repo:
+    uses: eclipse-kura/.github/.github/workflows/_shared-force-merge.yml@main
+    secrets: inherit

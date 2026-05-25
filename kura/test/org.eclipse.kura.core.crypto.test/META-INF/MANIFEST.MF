@@ -2,7 +2,11 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Unit tests for 'org.eclipse.kura.core.crypto'
 Bundle-SymbolicName: org.eclipse.kura.core.crypto.test
-Bundle-Version: 5.5.0.qualifier
+Bundle-Version: 6.0.0.qualifier
 Fragment-Host: org.eclipse.kura.core.crypto
-Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"
+Import-Package: org.apache.commons.io;version="2.18.0",
+  org.mockito;version="5.0.0",
+  org.mockito.invocation;version="5.0.0",
+  org.mockito.stubbing;version="5.0.0"
+Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=21))"
 Require-Bundle: org.junit;bundle-version="4.10.0"

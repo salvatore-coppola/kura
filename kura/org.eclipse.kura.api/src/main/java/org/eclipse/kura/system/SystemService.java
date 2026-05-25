@@ -1,12 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2011, 2021 Eurotech and/or its affiliates and others
- * 
+ * Copyright (c) 2011, 2026 Eurotech and/or its affiliates and others
+ *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
  * which is available at https://www.eclipse.org/legal/epl-2.0/
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0
- * 
+ *
  * Contributors:
  *  Eurotech
  ******************************************************************************/
@@ -115,7 +115,7 @@ public interface SystemService {
      * @since 2.2
      */
     public static final String KEY_LEGACY_BT_BEACON_SCAN = "kura.legacy.bluetooth.beacon.scan";
-    
+
     /**
      * @since 2.3
      */
@@ -130,6 +130,33 @@ public interface SystemService {
      * @since 2.6
      */
     public static final String KEY_JDK_VENDOR_VERSION = "jdk.vendor.version";
+
+    /**
+     * @since 2.8
+     */
+    public static final String KEY_DEFAULT_LOG_MANAGER = "kura.default.log.manager";
+
+    /**
+     * @since 3.0
+     */
+    public static final String KEY_WPA3_WIFI_SECURITY_ENABLE = "kura.wpa3.wifi.security.enable";
+
+    /**
+     * @since 3.0
+     */
+    public static final String KEY_NETWORK_CONFIGURATION_TIMEOUT = "kura.network.configuration.timeout";
+
+    /**
+     * @since 3.0 Hostname used to verify internet connection status.
+     */
+    public static final String KEY_INTERNET_CONNECTION_STATUS_CHECK_HOST = "kura.internet.check.hostname";
+
+    /**
+     * @since 3.0 Address in a format according to system IP version available (e.g. 198.41.30.198 in IPv4 or
+     *        ::ffff:c629:1ec6 in IPv6) required to verify the internet connection status.
+     *        In order to use the functionality, an IPv6-only system must override this property with an IPv6 address.
+     */
+    public static final String KEY_INTERNET_CONNECTION_STATUS_CHECK_IP = "kura.internet.check.ip";
 
     /**
      * @deprecated
@@ -481,7 +508,7 @@ public interface SystemService {
 
     /**
      * Returns the system packages currently installed
-     * 
+     *
      * @return the list of the installed packages
      * @throws KuraProcessExecutionErrorException
      * @since 2.2
@@ -524,7 +551,7 @@ public interface SystemService {
     public char[] getJavaTrustStorePassword();
 
     /**
-     * Returns a list of services that should be ignored by the Everyware Cloud Console
+     * Returns a list of services that should be ignored by the Cloud services
      *
      * @return
      */
@@ -540,7 +567,7 @@ public interface SystemService {
 
     /**
      * Returns the default configuration for virtual network interfaces
-     * 
+     *
      * @return a String that represent the default configuration for virtual interfaces
      * @since 2.2
      */
@@ -564,7 +591,7 @@ public interface SystemService {
 
     /**
      * Returns a set of {@link ExtendedProperties}.
-     * 
+     *
      * @since 2.2
      * @return the extended properties, or empty if the SystemService implementation does not provide extended
      *         properties.
@@ -579,7 +606,7 @@ public interface SystemService {
      * @return if the legacy beacon scan has to be used
      */
     public boolean isLegacyBluetoothBeaconScan();
-    
+
     /**
      * Returns true (default) if the PPP logging in separate log file in /var/log is enabled.
      *
@@ -599,11 +626,63 @@ public interface SystemService {
     public String getJavaVmVendor();
 
     /**
-     * 
-     * 
+     *
+     *
      * @since 2.6
      * @return the String representing the Java System property jdk.vendor.version.
      */
     public String getJdkVendorVersion();
+
+    /**
+     * Returns the name of the default LogManager, if any.
+     *
+     * @since 2.8
+     * @return the optional default LogManager
+     */
+    public Optional<String> getDefaultLogManager();
+
+    /**
+     * Returns true if the WPA3 WiFi Security is enabled on this device.
+     * The default is false.
+     *
+     * @since 3.0
+     * @return true if the WPA3 WiFi Security is enabled
+     */
+    public boolean isWPA3WifiSecurityEnabled();
+
+    /**
+     * Returns the timeout in seconds used for applying a network configuration.
+     *
+     * @since 3.0
+     * @return the timeout value in seconds
+     */
+    public int getNetworkConfigurationTimeout();
+
+    /**
+     * Indicates whether or not the device is connected to the internet and the status.
+     * The status is updated every 30 seconds and the verification process uses an ICMP request.
+     *
+     * @since 3.0
+     * @return the {@link InternetConnectionStatus}
+     */
+    public InternetConnectionStatus getInternetConnectionStatus();
+
+    /**
+     * Return the inet address used to check the internet connection. Must support ICMP protocol.
+     *
+     * @since 3.0
+     * @return the inet address used to check the internet connection. Default value is 198.41.30.198 (current
+     *         eclipse.org IP address, which may change over time; this value should be updated if the eclipse.org IP
+     *         changes)
+     */
+    public String getInternetConnectionStatusCheckIp();
+
+    /**
+     * Returns the hostname used to check the internet connection. Must support ICMP protocol.
+     *
+     * @since 3.0
+     * @return the hostname address used to check the internet connection. Default value is eclipse.org
+     */
+    public String getInternetConnectionStatusCheckHost();
 
 }

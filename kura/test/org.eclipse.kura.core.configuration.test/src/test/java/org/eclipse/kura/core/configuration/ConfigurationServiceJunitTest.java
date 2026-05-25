@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2016, 2022 Eurotech and/or its affiliates and others
+ * Copyright (c) 2016, 2025 Eurotech and/or its affiliates and others
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -31,6 +31,12 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -43,6 +49,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.eclipse.kura.KuraErrorCode;
 import org.eclipse.kura.KuraException;
 import org.eclipse.kura.KuraPartialSuccessException;
@@ -73,7 +81,7 @@ import org.osgi.service.component.runtime.dto.ComponentDescriptionDTO;
 public class ConfigurationServiceJunitTest {
 
     @Test
-    public void testGetFactoryComponentPids() throws NoSuchFieldException, KuraException {
+    public void testGetFactoryComponentPids() throws KuraException {
         // test that the returned PIDs are the same as in the service and that they cannot be modified
 
         String[] expectedPIDs = { "pid1", "pid2", "pid3" };
@@ -124,7 +132,7 @@ public class ConfigurationServiceJunitTest {
     }
 
     @Test
-    public void testCreateFactoryExistingPid() throws KuraException, IOException, NoSuchFieldException {
+    public void testCreateFactoryExistingPid() throws KuraException, NoSuchFieldException {
         // negative test; what if existing PID is used
 
         final String factoryPid = "fpid";
@@ -348,7 +356,7 @@ public class ConfigurationServiceJunitTest {
 
     @Test
     public void testDeleteFactoryConfigurationNonFactoryComponent()
-            throws KuraException, NoSuchFieldException, IOException, InvalidSyntaxException {
+            throws KuraException, IOException, InvalidSyntaxException {
 
         ConfigurationServiceImpl cs = new ConfigurationServiceImpl();
 
@@ -370,7 +378,7 @@ public class ConfigurationServiceJunitTest {
     }
 
     @Test
-    public void testDeleteFactoryConfigurationNonExistingServicePid() throws KuraException, NoSuchFieldException {
+    public void testDeleteFactoryConfigurationNonExistingServicePid() throws KuraException {
         ConfigurationServiceImpl cs = new ConfigurationServiceImpl();
         cs.setConfigurationAdmin(mock(ConfigurationAdmin.class));
 
@@ -417,8 +425,7 @@ public class ConfigurationServiceJunitTest {
     }
 
     @Test
-    public void testDeleteFactoryConfigurationNoSnapshot()
-            throws KuraException, IOException, NoSuchFieldException, InvalidSyntaxException {
+    public void testDeleteFactoryConfigurationNoSnapshot() throws KuraException, IOException, InvalidSyntaxException {
         // positive test; pid registered in factory and service pids, configuration delete is expected, no snapshot
 
         String factoryPid = "fpid";
@@ -453,8 +460,7 @@ public class ConfigurationServiceJunitTest {
     }
 
     @Test
-    public void testDeleteFactoryConfigurationWithSnapshot()
-            throws KuraException, IOException, NoSuchFieldException, InvalidSyntaxException {
+    public void testDeleteFactoryConfigurationWithSnapshot() throws KuraException, IOException, InvalidSyntaxException {
         // positive test; pid registered in factory and service pids, configuration delete is expected, take a snapshot
 
         String factoryPid = "fpid";
@@ -598,7 +604,7 @@ public class ConfigurationServiceJunitTest {
     }
 
     @Test(expected = NullPointerException.class)
-    public void testMergeWithDefaultsNulls() throws KuraException {
+    public void testMergeWithDefaultsNulls() {
         // test with null parameters - null properties means error and NPE is expected
 
         ConfigurationServiceImpl cs = new ConfigurationServiceImpl();
@@ -610,7 +616,7 @@ public class ConfigurationServiceJunitTest {
     }
 
     @Test
-    public void testMergeWithDefaultsEmpty() throws KuraException {
+    public void testMergeWithDefaultsEmpty() {
         // empty input
 
         ConfigurationServiceImpl cs = new ConfigurationServiceImpl();
@@ -625,7 +631,7 @@ public class ConfigurationServiceJunitTest {
     }
 
     @Test
-    public void testMergeWithDefaults() throws KuraException {
+    public void testMergeWithDefaults() {
         // a few default values, a few overrides, one ovelap
 
         final Map<String, Object> props = new HashMap<>();
@@ -637,7 +643,7 @@ public class ConfigurationServiceJunitTest {
         ConfigurationServiceImpl cs = new ConfigurationServiceImpl() {
 
             @Override
-            Map<String, Object> getDefaultProperties(OCD ocd) throws KuraException {
+            Map<String, Object> getDefaultProperties(OCD ocd) {
                 return props;
             }
         };
@@ -786,134 +792,6 @@ public class ConfigurationServiceJunitTest {
         assertFalse("all pids don't contain pid", allPids.contains(pid));
         assertFalse("service pids don't contain pid", spbp.containsKey(pid));
         assertFalse("activated pids don't contain pid", asc.contains(pid));
-    }
-
-    @Test
-    public void testEncryptConfigsNull() throws NoSuchMethodException {
-        // test with null parameter
-
-        ConfigurationServiceImpl cs = new ConfigurationServiceImpl();
-
-        List<? extends ComponentConfiguration> configs = null;
-
-        try {
-            TestUtil.invokePrivate(cs, "encryptConfigs", configs);
-        } catch (Throwable e) {
-            fail("Parameters not checked.");
-        }
-
-    }
-
-    @Test
-    public void testEncryptConfigsNoConfigs() {
-        // empty list
-        boolean exceptionCaught = false;
-        ConfigurationServiceImpl cs = new ConfigurationServiceImpl();
-
-        List<? extends ComponentConfiguration> configs = new ArrayList<>();
-
-        try {
-            TestUtil.invokePrivate(cs, "encryptConfigs", configs);
-        } catch (Throwable t) {
-            exceptionCaught = true;
-        }
-        assertFalse(exceptionCaught);
-    }
-
-    @Test
-    public void testEncryptConfigsEncryptionException() throws Throwable {
-        // test failed encryption of a password: add a password and run; fail
-        ConfigurationServiceImpl cs = new ConfigurationServiceImpl();
-
-        CryptoService cryptoServiceMock = mock(CryptoService.class);
-        cs.setCryptoService(cryptoServiceMock);
-
-        // first decryption must fail
-        when(cryptoServiceMock.decryptAes("pass".toCharArray()))
-                .thenThrow(new KuraException(KuraErrorCode.DECODER_ERROR, "password"));
-        // then also encryption can fail
-        when(cryptoServiceMock.encryptAes("pass".toCharArray()))
-                .thenThrow(new KuraException(KuraErrorCode.ENCODE_ERROR, "password"));
-
-        List<ComponentConfigurationImpl> configs = new ArrayList<>();
-
-        ComponentConfigurationImpl cfg = new ComponentConfigurationImpl();
-        Map<String, Object> props = new HashMap<>();
-        props.put("key1", new Password("pass"));
-        cfg.setProperties(props);
-
-        configs.add(cfg);
-
-        TestUtil.invokePrivate(cs, "encryptConfigs", configs);
-
-        verify(cryptoServiceMock, times(1)).decryptAes("pass".toCharArray());
-        verify(cryptoServiceMock, times(1)).encryptAes("pass".toCharArray());
-
-        assertEquals("property was deleted", 0, props.size());
-    }
-
-    @Test
-    public void testEncryptConfigs() throws Throwable {
-        // test encrypting a password: add a password and run
-        ConfigurationServiceImpl cs = new ConfigurationServiceImpl();
-
-        CryptoService cryptoServiceMock = mock(CryptoService.class);
-        cs.setCryptoService(cryptoServiceMock);
-
-        // first decryption must fail
-        when(cryptoServiceMock.decryptAes("pass".toCharArray()))
-                .thenThrow(new KuraException(KuraErrorCode.DECODER_ERROR, "configuration"));
-        // so that encryption is attempted at all
-        when(cryptoServiceMock.encryptAes("pass".toCharArray())).thenReturn("encrypted".toCharArray());
-
-        List<ComponentConfigurationImpl> configs = new ArrayList<>();
-
-        ComponentConfigurationImpl cfg = new ComponentConfigurationImpl();
-        Map<String, Object> props = new HashMap<>();
-        props.put("key1", new Password("pass"));
-        cfg.setProperties(props);
-
-        configs.add(cfg);
-
-        TestUtil.invokePrivate(cs, "encryptConfigs", configs);
-
-        verify(cryptoServiceMock, times(1)).decryptAes("pass".toCharArray());
-        verify(cryptoServiceMock, times(1)).encryptAes("pass".toCharArray());
-
-        assertEquals("property was updated", 1, props.size());
-        assertTrue("key still exists", props.containsKey("key1"));
-        assertArrayEquals("key is encrypted", "encrypted".toCharArray(), ((Password) props.get("key1")).getPassword());
-    }
-
-    @Test
-    public void testEncryptConfigsPreencryptedPassword() throws Throwable {
-        // test encrypting a password when the password is already encrypted
-        ConfigurationServiceImpl cs = new ConfigurationServiceImpl();
-
-        CryptoService cryptoServiceMock = mock(CryptoService.class);
-        cs.setCryptoService(cryptoServiceMock);
-
-        // decryption succeeds this time
-        when(cryptoServiceMock.decryptAes("pass".toCharArray())).thenReturn("pass".toCharArray());
-
-        List<ComponentConfigurationImpl> configs = new ArrayList<>();
-
-        ComponentConfigurationImpl cfg = new ComponentConfigurationImpl();
-        Map<String, Object> props = new HashMap<>();
-        props.put("key1", new Password("pass"));
-        cfg.setProperties(props);
-
-        configs.add(cfg);
-
-        TestUtil.invokePrivate(cs, "encryptConfigs", configs);
-
-        verify(cryptoServiceMock, times(1)).decryptAes("pass".toCharArray());
-        verify(cryptoServiceMock, times(0)).encryptAes((char[]) ArgumentMatchers.any());
-
-        assertEquals("property remains", 1, props.size());
-        assertTrue("key still exists", props.containsKey("key1"));
-        assertArrayEquals("key is already encrypted", "pass".toCharArray(),
-                ((Password) props.get("key1")).getPassword());
     }
 
     @Test
@@ -1180,8 +1058,7 @@ public class ConfigurationServiceJunitTest {
 
             @Override
             XmlComponentConfigurations loadEncryptedSnapshotFileContent(long snapshotID) throws KuraException {
-                XmlComponentConfigurations cfgs = null;
-                return cfgs;
+                return null;
             }
         };
 
@@ -1354,21 +1231,20 @@ public class ConfigurationServiceJunitTest {
         ConfigurationServiceImpl cs = new ConfigurationServiceImpl() {
 
             @Override
-            protected <T> T unmarshal(String xmlString, Class<T> clazz) throws KuraException {
+            protected <T> T unmarshal(InputStream xmlStream, Class<T> clazz) throws KuraException {
                 XmlMarshallUnmarshallImpl xmlMarshaller = new XmlMarshallUnmarshallImpl();
 
-                return xmlMarshaller.unmarshal(xmlString, clazz);
+                return xmlMarshaller.unmarshal(xmlStream, clazz);
             }
 
             @Override
-            protected String marshal(Object object) {
+            protected void marshal(OutputStream outStream, Object object) {
                 XmlMarshallUnmarshallImpl xmlMarshaller = new XmlMarshallUnmarshallImpl();
                 try {
-                    return xmlMarshaller.marshal(object);
+                    xmlMarshaller.marshal(outStream, object);
                 } catch (KuraException e) {
-
+                    // Do nothing...
                 }
-                return null;
             }
         };
 
@@ -1389,19 +1265,23 @@ public class ConfigurationServiceJunitTest {
         f1.deleteOnExit();
 
         FileWriter fw = new FileWriter(f1);
-        fw.append("test");
+        fw.append(IOUtils.toString(
+                ConfigurationServiceJunitTest.class.getResourceAsStream("/expected_snapshot_with_description.xml"),
+                StandardCharsets.UTF_8.name()));
         fw.close();
 
         CryptoService cryptoServiceMock = mock(CryptoService.class);
         cs.setCryptoService(cryptoServiceMock);
 
         // ensure the proper file is read
-        when(cryptoServiceMock.decryptAes("test".toCharArray())).thenReturn(decrypted.toCharArray());
+        when(cryptoServiceMock.aesDecryptingStream((InputStream) ArgumentMatchers.any())).thenAnswer(answer -> {
+            return answer.getArgument(0, InputStream.class);
+        });
 
         XmlComponentConfigurations configurations = cs.loadEncryptedSnapshotFileContent(snapshotID);
 
         verify(systemServiceMock, times(1)).getKuraSnapshotsDirectory();
-        verify(cryptoServiceMock, times(1)).decryptAes("test".toCharArray());
+        verify(cryptoServiceMock, times(1)).aesDecryptingStream((InputStream) ArgumentMatchers.any());
 
         f1.delete();
         d1.delete();
@@ -1433,7 +1313,7 @@ public class ConfigurationServiceJunitTest {
         List<ComponentConfigurationImpl> result = (List<ComponentConfigurationImpl>) TestUtil.invokePrivate(cs,
                 "loadLatestSnapshotConfigurations");
 
-        assertNull("null result", result);
+        assertTrue("empty result", result.isEmpty());
     }
 
     @Test
@@ -1453,7 +1333,7 @@ public class ConfigurationServiceJunitTest {
         List<ComponentConfigurationImpl> result = (List<ComponentConfigurationImpl>) TestUtil.invokePrivate(cs,
                 "loadLatestSnapshotConfigurations");
 
-        assertNull("null result", result);
+        assertTrue("empty result", result.isEmpty());
     }
 
     @Test
@@ -1582,7 +1462,7 @@ public class ConfigurationServiceJunitTest {
         List<ComponentConfigurationImpl> result = (List<ComponentConfigurationImpl>) TestUtil.invokePrivate(cs,
                 "loadLatestSnapshotConfigurations");
 
-        assertNull("xml config null", result);
+        assertTrue("xml config empty", result.isEmpty());
 
         assertEquals("call snapshots", 4, calls[0]);
         assertEquals("call load xml", 3, calls[1]);
@@ -1654,45 +1534,46 @@ public class ConfigurationServiceJunitTest {
             }
 
             @Override
-            protected <T> T unmarshal(String xmlString, Class<T> clazz) throws KuraException {
+            protected <T> T unmarshal(InputStream xmlStream, Class<T> clazz) throws KuraException {
                 XmlMarshallUnmarshallImpl xmlMarshaller = new XmlMarshallUnmarshallImpl();
 
-                return xmlMarshaller.unmarshal(xmlString, clazz);
+                return xmlMarshaller.unmarshal(xmlStream, clazz);
             }
 
             @Override
-            protected String marshal(Object object) {
+            protected void marshal(OutputStream outStream, Object object) {
                 XmlMarshallUnmarshallImpl xmlMarshaller = new XmlMarshallUnmarshallImpl();
                 try {
-                    return xmlMarshaller.marshal(object);
+                    xmlMarshaller.marshal(outStream, object);
                 } catch (KuraException e) {
-
+                    // Do nothing...
                 }
-                return null;
             }
         };
 
         CryptoService cryptoServiceMock = mock(CryptoService.class);
         cs.setCryptoService(cryptoServiceMock);
 
-        String encCfg = "encrypted";
-        char[] encrypted = encCfg.toCharArray();
-        when(cryptoServiceMock.encryptAes((char[]) ArgumentMatchers.any())).thenReturn(encrypted);
+        when(cryptoServiceMock.aesEncryptingStream((OutputStream) ArgumentMatchers.any())).thenAnswer(answer -> {
+            return answer.getArgument(0, OutputStream.class);
+        });
 
         BundleContext bundleContext = mock(BundleContext.class);
         TestUtil.setFieldValue(cs, "bundleContext", bundleContext);
 
         TestUtil.invokePrivate(cs, "encryptPlainSnapshots");
 
-        verify(cryptoServiceMock, times(1)).encryptAes((char[]) ArgumentMatchers.any());
+        verify(cryptoServiceMock, times(1)).aesEncryptingStream((OutputStream) ArgumentMatchers.any());
 
         FileReader fr = new FileReader(f1);
-        char[] chars = new char[encCfg.length()];
-        int read = fr.read(chars);
-        fr.close();
+        assertTrue("snapshot file was created", f1.exists());
 
-        assertEquals("proper length", encCfg.length(), read);
-        assertArrayEquals("proper encrypted contents", encrypted, chars);
+        String expectedXml = IOUtils.toString(
+                ConfigurationServiceJunitTest.class.getResourceAsStream("/expected_snapshot_without_description.xml"),
+                StandardCharsets.UTF_8.name());
+        String actualXml = FileUtils.readFileToString(f1, StandardCharsets.UTF_8);
+
+        assertEquals(expectedXml, actualXml);
 
         f1.delete();
         d1.delete();
@@ -1753,39 +1634,38 @@ public class ConfigurationServiceJunitTest {
             }
 
             @Override
-            protected <T> T unmarshal(String xmlString, Class<T> clazz) throws KuraException {
+            protected <T> T unmarshal(InputStream xmlStream, Class<T> clazz) throws KuraException {
                 XmlMarshallUnmarshallImpl xmlMarshaller = new XmlMarshallUnmarshallImpl();
 
-                return xmlMarshaller.unmarshal(xmlString, clazz);
+                return xmlMarshaller.unmarshal(xmlStream, clazz);
             }
 
             @Override
-            protected String marshal(Object object) {
+            protected void marshal(OutputStream outStream, Object object) {
                 XmlMarshallUnmarshallImpl xmlMarshaller = new XmlMarshallUnmarshallImpl();
                 try {
-                    return xmlMarshaller.marshal(object);
+                    xmlMarshaller.marshal(outStream, object);
                 } catch (KuraException e) {
-
+                    // Do nothing...
                 }
-                return null;
             }
         };
 
         CryptoService cryptoServiceMock = mock(CryptoService.class);
         cs.setCryptoService(cryptoServiceMock);
 
-        String encCfg = "encrypted";
-        char[] encrypted = encCfg.toCharArray();
-        when(cryptoServiceMock.encryptAes((char[]) ArgumentMatchers.any())).thenReturn(encrypted);
+        when(cryptoServiceMock.aesEncryptingStream((OutputStream) ArgumentMatchers.any())).thenAnswer(answer -> {
+            return answer.getArgument(0, OutputStream.class);
+        });
 
         try {
             TestUtil.invokePrivate(cs, "writeSnapshot", sid, cfg);
             fail("Exception expected due to 'file' being directory.");
         } catch (KuraException e) {
-            assertEquals("Error code.", KuraErrorCode.INTERNAL_ERROR, e.getCode());
+            assertEquals("Error code.", KuraErrorCode.IO_ERROR, e.getCode());
         }
 
-        verify(cryptoServiceMock, times(1)).encryptAes((char[]) ArgumentMatchers.any());
+        verify(cryptoServiceMock, times(1)).aesEncryptingStream((OutputStream) ArgumentMatchers.any());
 
         d1.delete();
         d2.delete();
@@ -1813,49 +1693,48 @@ public class ConfigurationServiceJunitTest {
             }
 
             @Override
-            protected <T> T unmarshal(String xmlString, Class<T> clazz) throws KuraException {
+            protected <T> T unmarshal(InputStream xmlStream, Class<T> clazz) throws KuraException {
                 XmlMarshallUnmarshallImpl xmlMarshaller = new XmlMarshallUnmarshallImpl();
 
-                return xmlMarshaller.unmarshal(xmlString, clazz);
+                return xmlMarshaller.unmarshal(xmlStream, clazz);
             }
 
             @Override
-            protected String marshal(Object object) {
+            protected void marshal(OutputStream outStream, Object object) {
                 XmlMarshallUnmarshallImpl xmlMarshaller = new XmlMarshallUnmarshallImpl();
                 try {
-                    return xmlMarshaller.marshal(object);
+                    xmlMarshaller.marshal(outStream, object);
                 } catch (KuraException e) {
-
+                    // Do nothing...
                 }
-                return null;
             }
         };
 
         CryptoService cryptoServiceMock = mock(CryptoService.class);
+
         cs.setCryptoService(cryptoServiceMock);
 
-        String encCfg = "encrypted";
-        char[] encrypted = encCfg.toCharArray();
-        when(cryptoServiceMock.encryptAes((char[]) ArgumentMatchers.any())).thenReturn(encrypted);
+        when(cryptoServiceMock.aesEncryptingStream((OutputStream) ArgumentMatchers.any())).thenAnswer(answer -> {
+            return answer.getArgument(0, OutputStream.class);
+        });
 
         BundleContext bundleContext = mock(BundleContext.class);
         TestUtil.setFieldValue(cs, "bundleContext", bundleContext);
 
         TestUtil.invokePrivate(cs, "writeSnapshot", sid, cfg);
 
-        verify(cryptoServiceMock, times(1)).encryptAes((char[]) ArgumentMatchers.any());
+        verify(cryptoServiceMock, times(1)).aesEncryptingStream((OutputStream) ArgumentMatchers.any());
 
         File f1 = new File(d1, "snapshot_" + sid + ".xml");
         f1.deleteOnExit();
         assertTrue("snapshot file was created", f1.exists());
 
-        FileReader fr = new FileReader(f1);
-        char[] chars = new char[encCfg.length()];
-        int read = fr.read(chars);
-        fr.close();
+        String expectedXml = IOUtils.toString(
+                ConfigurationServiceJunitTest.class.getResourceAsStream("/expected_snapshot_with_description.xml"),
+                StandardCharsets.UTF_8.name());
+        String actualXml = FileUtils.readFileToString(f1, StandardCharsets.UTF_8);
 
-        assertEquals("proper length", encCfg.length(), read);
-        assertArrayEquals("proper encrypted contents", encrypted, chars);
+        assertEquals(expectedXml, actualXml);
 
         f1.delete();
         d1.delete();
@@ -2109,30 +1988,29 @@ public class ConfigurationServiceJunitTest {
             }
 
             @Override
-            protected <T> T unmarshal(String xmlString, Class<T> clazz) throws KuraException {
+            protected <T> T unmarshal(InputStream xmlStream, Class<T> clazz) throws KuraException {
                 XmlMarshallUnmarshallImpl xmlMarshaller = new XmlMarshallUnmarshallImpl();
 
-                return xmlMarshaller.unmarshal(xmlString, clazz);
+                return xmlMarshaller.unmarshal(xmlStream, clazz);
             }
 
             @Override
-            protected String marshal(Object object) {
+            protected void marshal(OutputStream outStream, Object object) {
                 XmlMarshallUnmarshallImpl xmlMarshaller = new XmlMarshallUnmarshallImpl();
                 try {
-                    return xmlMarshaller.marshal(object);
+                    xmlMarshaller.marshal(outStream, object);
                 } catch (KuraException e) {
-
+                    // Do nothing...
                 }
-                return null;
             }
         };
 
         CryptoService cryptoServiceMock = mock(CryptoService.class);
         cs.setCryptoService(cryptoServiceMock);
 
-        String encCfg = "encrypted";
-        char[] encrypted = encCfg.toCharArray();
-        when(cryptoServiceMock.encryptAes((char[]) ArgumentMatchers.any())).thenReturn(encrypted);
+        when(cryptoServiceMock.aesEncryptingStream((OutputStream) ArgumentMatchers.any())).thenAnswer(answer -> {
+            return answer.getArgument(0, OutputStream.class);
+        });
 
         SystemService systemServiceMock = mock(SystemService.class);
         cs.setSystemService(systemServiceMock);
@@ -2144,7 +2022,7 @@ public class ConfigurationServiceJunitTest {
 
         Long sid = (Long) TestUtil.invokePrivate(cs, "saveSnapshot", configs);
 
-        verify(cryptoServiceMock, times(1)).encryptAes((char[]) ArgumentMatchers.any());
+        verify(cryptoServiceMock, times(1)).aesEncryptingStream((OutputStream) ArgumentMatchers.any());
         verify(systemServiceMock, times(1)).getKuraSnapshotsCount();
 
         assertNotNull(sid);
@@ -2152,12 +2030,12 @@ public class ConfigurationServiceJunitTest {
         File f1 = new File(d1, "snapshot_" + sid + ".xml");
         assertTrue("snapshot file created", f1.exists());
 
-        FileReader fr = new FileReader(f1);
-        char[] chars = new char[encCfg.length()];
-        fr.read(chars);
-        fr.close();
+        String expectedXml = IOUtils.toString(
+                ConfigurationServiceJunitTest.class.getResourceAsStream("/expected_snapshot_without_description.xml"),
+                StandardCharsets.UTF_8.name());
+        String actualXml = FileUtils.readFileToString(f1, StandardCharsets.UTF_8);
 
-        assertArrayEquals("snapshot file content matches", encCfg.toCharArray(), chars);
+        assertEquals(expectedXml, actualXml);
 
         f1.delete();
         d1.delete();
@@ -2190,30 +2068,29 @@ public class ConfigurationServiceJunitTest {
             }
 
             @Override
-            protected <T> T unmarshal(String xmlString, Class<T> clazz) throws KuraException {
+            protected <T> T unmarshal(InputStream xmlStream, Class<T> clazz) throws KuraException {
                 XmlMarshallUnmarshallImpl xmlMarshaller = new XmlMarshallUnmarshallImpl();
 
-                return xmlMarshaller.unmarshal(xmlString, clazz);
+                return xmlMarshaller.unmarshal(xmlStream, clazz);
             }
 
             @Override
-            protected String marshal(Object object) {
+            protected void marshal(OutputStream outStream, Object object) {
                 XmlMarshallUnmarshallImpl xmlMarshaller = new XmlMarshallUnmarshallImpl();
                 try {
-                    return xmlMarshaller.marshal(object);
+                    xmlMarshaller.marshal(outStream, object);
                 } catch (KuraException e) {
-
+                    // Do nothing...
                 }
-                return null;
             }
         };
 
         CryptoService cryptoServiceMock = mock(CryptoService.class);
         cs.setCryptoService(cryptoServiceMock);
 
-        String encCfg = "encrypted";
-        char[] encrypted = encCfg.toCharArray();
-        when(cryptoServiceMock.encryptAes((char[]) ArgumentMatchers.any())).thenReturn(encrypted);
+        when(cryptoServiceMock.aesEncryptingStream((OutputStream) ArgumentMatchers.any())).thenAnswer(answer -> {
+            return answer.getArgument(0, OutputStream.class);
+        });
 
         SystemService systemServiceMock = mock(SystemService.class);
         cs.setSystemService(systemServiceMock);
@@ -2228,7 +2105,7 @@ public class ConfigurationServiceJunitTest {
 
         Long sid = (Long) TestUtil.invokePrivate(cs, "saveSnapshot", configs);
 
-        verify(cryptoServiceMock, times(1)).encryptAes((char[]) ArgumentMatchers.any());
+        verify(cryptoServiceMock, times(1)).aesEncryptingStream((OutputStream) ArgumentMatchers.any());
         verify(systemServiceMock, times(1)).getKuraSnapshotsCount();
 
         assertNotNull(sid);
@@ -2237,12 +2114,12 @@ public class ConfigurationServiceJunitTest {
         File f1 = new File(d1, "snapshot_" + sid + ".xml");
         assertTrue("snapshot file created", f1.exists());
 
-        FileReader fr = new FileReader(f1);
-        char[] chars = new char[encCfg.length()];
-        fr.read(chars);
-        fr.close();
+        String expectedXml = IOUtils.toString(
+                ConfigurationServiceJunitTest.class.getResourceAsStream("/expected_snapshot_without_description.xml"),
+                StandardCharsets.UTF_8.name());
+        String actualXml = FileUtils.readFileToString(f1, StandardCharsets.UTF_8);
 
-        assertArrayEquals("snapshot file content matches", encCfg.toCharArray(), chars);
+        assertEquals(expectedXml, actualXml);
 
         f1.delete();
         d1.delete();
@@ -2275,30 +2152,29 @@ public class ConfigurationServiceJunitTest {
             }
 
             @Override
-            protected <T> T unmarshal(String xmlString, Class<T> clazz) throws KuraException {
+            protected <T> T unmarshal(InputStream xmlStream, Class<T> clazz) throws KuraException {
                 XmlMarshallUnmarshallImpl xmlMarshaller = new XmlMarshallUnmarshallImpl();
 
-                return xmlMarshaller.unmarshal(xmlString, clazz);
+                return xmlMarshaller.unmarshal(xmlStream, clazz);
             }
 
             @Override
-            protected String marshal(Object object) {
+            protected void marshal(OutputStream outStream, Object object) {
                 XmlMarshallUnmarshallImpl xmlMarshaller = new XmlMarshallUnmarshallImpl();
                 try {
-                    return xmlMarshaller.marshal(object);
+                    xmlMarshaller.marshal(outStream, object);
                 } catch (KuraException e) {
-
+                    // Do nothing...
                 }
-                return null;
             }
         };
 
         CryptoService cryptoServiceMock = mock(CryptoService.class);
         cs.setCryptoService(cryptoServiceMock);
 
-        String encCfg = "encrypted";
-        char[] encrypted = encCfg.toCharArray();
-        when(cryptoServiceMock.encryptAes((char[]) ArgumentMatchers.any())).thenReturn(encrypted);
+        when(cryptoServiceMock.aesEncryptingStream((OutputStream) ArgumentMatchers.any())).thenAnswer(answer -> {
+            return answer.getArgument(0, OutputStream.class);
+        });
 
         SystemService systemServiceMock = mock(SystemService.class);
         cs.setSystemService(systemServiceMock);
@@ -2310,7 +2186,7 @@ public class ConfigurationServiceJunitTest {
 
         Long sid = (Long) TestUtil.invokePrivate(cs, "saveSnapshot", configs);
 
-        verify(cryptoServiceMock, times(1)).encryptAes((char[]) ArgumentMatchers.any());
+        verify(cryptoServiceMock, times(1)).aesEncryptingStream((OutputStream) ArgumentMatchers.any());
         verify(systemServiceMock, times(1)).getKuraSnapshotsCount();
 
         assertNotNull(sid);
@@ -2320,12 +2196,12 @@ public class ConfigurationServiceJunitTest {
         File f1 = new File(d1, "snapshot_" + sid + ".xml");
         assertTrue("Expected snapshot file to be created", f1.exists());
 
-        FileReader fr = new FileReader(f1);
-        char[] chars = new char[encCfg.length()];
-        fr.read(chars);
-        fr.close();
+        String expectedXml = IOUtils.toString(
+                ConfigurationServiceJunitTest.class.getResourceAsStream("/expected_snapshot_without_description.xml"),
+                StandardCharsets.UTF_8.name());
+        String actualXml = FileUtils.readFileToString(f1, StandardCharsets.UTF_8);
 
-        assertArrayEquals("Expected snapshot file content to match", encCfg.toCharArray(), chars);
+        assertEquals(expectedXml, actualXml);
 
         f1.delete();
         d1.delete();
@@ -2348,7 +2224,7 @@ public class ConfigurationServiceJunitTest {
         snapshotsDir.deleteOnExit();
 
         final SystemService ssMock = mock(SystemService.class);
-        when(ssMock.getKuraSnapshotsDirectory()).thenReturn(snapshotsDir.getAbsolutePath().toString());
+        when(ssMock.getKuraSnapshotsDirectory()).thenReturn(snapshotsDir.getAbsolutePath());
 
         final Map<String, Object> expectedConfig = Collections.singletonMap("prop", "contains\nline\nbreaks\n");
 
@@ -2371,27 +2247,30 @@ public class ConfigurationServiceJunitTest {
 
             @Override
             String getSnapshotsDirectory() {
-                return snapshotsDir.getAbsolutePath().toString();
+                return snapshotsDir.getAbsolutePath();
             }
 
             @Override
-            protected <T> T unmarshal(String xmlString, Class<T> clazz) throws KuraException {
+            protected <T> T unmarshal(InputStream xmlStream, Class<T> clazz) throws KuraException {
                 XmlMarshallUnmarshallImpl xmlMarshaller = new XmlMarshallUnmarshallImpl();
 
-                return xmlMarshaller.unmarshal(xmlString, clazz);
+                return xmlMarshaller.unmarshal(xmlStream, clazz);
             }
 
             @Override
-            protected String marshal(Object object) {
+            protected void marshal(OutputStream outStream, Object object) {
                 XmlMarshallUnmarshallImpl xmlMarshaller = new XmlMarshallUnmarshallImpl();
                 try {
-                    return xmlMarshaller.marshal(object);
+                    xmlMarshaller.marshal(outStream, object);
                 } catch (KuraException e) {
-
+                    // Do nothing...
                 }
-                return null;
             }
         };
+
+        when(csMock.aesDecryptingStream((InputStream) ArgumentMatchers.any())).thenAnswer(answer -> {
+            return answer.getArgument(0, InputStream.class);
+        });
 
         configurationService.setCryptoService(csMock);
 
@@ -2493,7 +2372,7 @@ public class ConfigurationServiceJunitTest {
         ConfigurationServiceImpl cs = new ConfigurationServiceImpl() {
 
             @Override
-            boolean mergeWithDefaults(OCD ocd, Map<String, Object> properties) throws KuraException {
+            boolean mergeWithDefaults(OCD ocd, Map<String, Object> properties) {
                 assertEquals("size", 2, properties.size());
                 assertTrue("new property", properties.containsKey(ConfigurationService.KURA_SERVICE_PID));
                 assertEquals("property value", spid, properties.get(ConfigurationService.KURA_SERVICE_PID));
@@ -2532,7 +2411,7 @@ public class ConfigurationServiceJunitTest {
         ConfigurationServiceImpl cs = new ConfigurationServiceImpl() {
 
             @Override
-            boolean mergeWithDefaults(OCD ocd, Map<String, Object> properties) throws KuraException {
+            boolean mergeWithDefaults(OCD ocd, Map<String, Object> properties) {
                 assertEquals("size", 1, properties.size());
                 assertTrue("new property", properties.containsKey(ConfigurationService.KURA_SERVICE_PID));
                 assertEquals("property value", pid, properties.get(ConfigurationService.KURA_SERVICE_PID));
@@ -2944,21 +2823,20 @@ public class ConfigurationServiceJunitTest {
             }
 
             @Override
-            protected <T> T unmarshal(String xmlString, Class<T> clazz) throws KuraException {
+            protected <T> T unmarshal(InputStream xmlStream, Class<T> clazz) throws KuraException {
                 XmlMarshallUnmarshallImpl xmlMarshaller = new XmlMarshallUnmarshallImpl();
 
-                return xmlMarshaller.unmarshal(xmlString, clazz);
+                return xmlMarshaller.unmarshal(xmlStream, clazz);
             }
 
             @Override
-            protected String marshal(Object object) {
+            protected void marshal(OutputStream outStream, Object object) {
                 XmlMarshallUnmarshallImpl xmlMarshaller = new XmlMarshallUnmarshallImpl();
                 try {
-                    return xmlMarshaller.marshal(object);
+                    xmlMarshaller.marshal(outStream, object);
                 } catch (KuraException e) {
-
+                    // Do nothing...
                 }
-                return null;
             }
         };
 
@@ -2971,23 +2849,28 @@ public class ConfigurationServiceJunitTest {
         f1.deleteOnExit();
 
         FileWriter fw = new FileWriter(f1);
-        fw.append("test");
+        fw.append(IOUtils.toString(
+                ConfigurationServiceJunitTest.class.getResourceAsStream("/expected_snapshot_with_description.xml"),
+                StandardCharsets.UTF_8.name()));
         fw.close();
 
         CryptoService cryptoServiceMock = mock(CryptoService.class);
         cs.setCryptoService(cryptoServiceMock);
 
-        String decrypted = prepareSnapshotXML();
-        when(cryptoServiceMock.decryptAes("test".toCharArray())).thenReturn(decrypted.toCharArray());
+        when(cryptoServiceMock.aesDecryptingStream((InputStream) ArgumentMatchers.any())).thenAnswer(answer -> {
+            return answer.getArgument(0, InputStream.class);
+        });
 
-        when(cryptoServiceMock.encryptAes((char[]) any())).thenReturn("encrypted".toCharArray());
+        when(cryptoServiceMock.aesEncryptingStream((OutputStream) ArgumentMatchers.any())).thenAnswer(answer -> {
+            return answer.getArgument(0, OutputStream.class);
+        });
 
         SystemService systemServiceMock = mock(SystemService.class);
         cs.setSystemService(systemServiceMock);
 
         when(systemServiceMock.getKuraSnapshotsCount()).thenReturn(5);
 
-        String pid = "pid";
+        String pid = "123";
         Set<String> allPids = (Set<String>) TestUtil.getFieldValue(cs, "allActivatedPids");
         allPids.add(pid);
 
@@ -3018,6 +2901,12 @@ public class ConfigurationServiceJunitTest {
 
         when(bundleMock.getResource(ArgumentMatchers.anyString())).thenThrow(new NullPointerException("test"));
 
+        Configuration[] configurations = new Configuration[] {};
+        ConfigurationAdmin cfgAdminMock = mock(ConfigurationAdmin.class);
+        when(cfgAdminMock.listConfigurations(null)).thenReturn(configurations);
+        when(cfgAdminMock.getConfiguration(ppid)).thenThrow(IOException.class);
+        cs.setConfigurationAdmin(cfgAdminMock);
+
         try {
             cs.rollback(id);
             fail("Rigged for exception.");
@@ -3025,7 +2914,7 @@ public class ConfigurationServiceJunitTest {
             // OK
         }
 
-        verify(cryptoServiceMock, times(1)).decryptAes("test".toCharArray());
+        verify(cryptoServiceMock, times(1)).aesDecryptingStream(((InputStream) ArgumentMatchers.any()));
 
         File[] files = d1.listFiles();
 
@@ -3034,14 +2923,14 @@ public class ConfigurationServiceJunitTest {
         for (File f : files) {
             f.deleteOnExit();
         }
-        String expect = "test";
 
-        FileReader fr = new FileReader(files[0]);
-        char[] chars = new char[expect.length()];
-        fr.read(chars);
-        fr.close();
+        File file = files[0];
+        String expectedXml = IOUtils.toString(
+                ConfigurationServiceJunitTest.class.getResourceAsStream("/expected_snapshot_with_description.xml"),
+                StandardCharsets.UTF_8.name());
+        String actualXml = FileUtils.readFileToString(file, StandardCharsets.UTF_8);
 
-        assertEquals(expect, new String(chars));
+        assertEquals(expectedXml, actualXml);
     }
 
     public void testRollbackId() throws Exception {
@@ -3144,8 +3033,7 @@ public class ConfigurationServiceJunitTest {
     }
 
     private OCDService createMockConfigurationServiceForOCDTests(List<String> registeredFactories,
-            List<Tocd> registeredOcds, List<ComponentDescriptionDTO> registeredComponents)
-            throws NoSuchFieldException, KuraException {
+            List<Tocd> registeredOcds, List<ComponentDescriptionDTO> registeredComponents) throws KuraException {
 
         assertEquals(registeredFactories.size(), registeredOcds.size());
         ServiceComponentRuntime scrService = mock(ServiceComponentRuntime.class);
@@ -3165,7 +3053,7 @@ public class ConfigurationServiceJunitTest {
     }
 
     @Test
-    public void testShouldReturnEmptyFactoryOCDList() throws NoSuchFieldException, KuraException {
+    public void testShouldReturnEmptyFactoryOCDList() throws KuraException {
         final OCDService ocdService = createMockConfigurationServiceForOCDTests(Arrays.asList(), Arrays.asList(),
                 Arrays.asList());
         final List<ComponentConfiguration> configs = ocdService.getFactoryComponentOCDs();
@@ -3173,7 +3061,7 @@ public class ConfigurationServiceJunitTest {
     }
 
     @Test
-    public void testShouldGetFactoryOCDList() throws NoSuchFieldException, KuraException {
+    public void testShouldGetFactoryOCDList() throws KuraException {
         final Tocd ocd1 = mock(Tocd.class);
         final Tocd ocd2 = mock(Tocd.class);
         final Tocd ocd3 = mock(Tocd.class);
@@ -3187,7 +3075,7 @@ public class ConfigurationServiceJunitTest {
     }
 
     @Test
-    public void testShouldReturnNullFactoryOCD() throws NoSuchFieldException, KuraException {
+    public void testShouldReturnNullFactoryOCD() throws KuraException {
         final OCDService ocdService = createMockConfigurationServiceForOCDTests(Arrays.asList(), Arrays.asList(),
                 Arrays.asList());
         assertNull(ocdService.getFactoryComponentOCD("bar"));
@@ -3195,7 +3083,7 @@ public class ConfigurationServiceJunitTest {
     }
 
     @Test
-    public void testShouldGetSingleFactoryOCD() throws NoSuchFieldException, KuraException {
+    public void testShouldGetSingleFactoryOCD() throws KuraException {
         final Tocd ocd1 = mock(Tocd.class);
         final Tocd ocd2 = mock(Tocd.class);
         final Tocd ocd3 = mock(Tocd.class);
@@ -3209,7 +3097,7 @@ public class ConfigurationServiceJunitTest {
     }
 
     @Test
-    public void testShouldReturnEmptyFactoryOCDListForServiceProvider() throws NoSuchFieldException, KuraException {
+    public void testShouldReturnEmptyFactoryOCDListForServiceProvider() throws KuraException {
         final OCDService ocdService = createMockConfigurationServiceForOCDTests(Arrays.asList(), Arrays.asList(),
                 Arrays.asList());
         assertTrue(ocdService.getServiceProviderOCDs(new Class<?>[0]).isEmpty());
@@ -3217,7 +3105,7 @@ public class ConfigurationServiceJunitTest {
     }
 
     @Test
-    public void testShouldReturnFactoryOCDListForServiceProvider() throws NoSuchFieldException, KuraException {
+    public void testShouldReturnFactoryOCDListForServiceProvider() throws KuraException {
         final Tocd fooOcd = mock(Tocd.class);
         final Tocd barOcd = mock(Tocd.class);
         final Tocd bazOcd = mock(Tocd.class);
@@ -3263,5 +3151,145 @@ public class ConfigurationServiceJunitTest {
         assertEquals(2, implementingDouble.size());
         assertTrue(implementingDouble.stream().filter(config -> isOCDFor(config, "bar", barOcd)).findAny().isPresent());
         assertTrue(implementingDouble.stream().filter(config -> isOCDFor(config, "baz", bazOcd)).findAny().isPresent());
+    }
+
+    @Test
+    public void testWriteSnapshotFilePermissions() throws Throwable {
+        // Test that snapshot files are created with secure 600 permissions (owner read/write only)
+        
+        long sid = 424L;
+        XmlComponentConfigurations cfg = prepareSnapshot();
+        final String dir = "snapshotDirPermissions";
+        
+        File d1 = new File(dir);
+        d1.mkdirs();
+        d1.deleteOnExit();
+        
+        ConfigurationServiceImpl cs = new ConfigurationServiceImpl() {
+            @Override
+            String getSnapshotsDirectory() {
+                return dir;
+            }
+            
+            @Override
+            protected <T> T unmarshal(InputStream xmlStream, Class<T> clazz) throws KuraException {
+                XmlMarshallUnmarshallImpl xmlMarshaller = new XmlMarshallUnmarshallImpl();
+                return xmlMarshaller.unmarshal(xmlStream, clazz);
+            }
+            
+            @Override
+            protected void marshal(OutputStream outStream, Object object) {
+                XmlMarshallUnmarshallImpl xmlMarshaller = new XmlMarshallUnmarshallImpl();
+                try {
+                    xmlMarshaller.marshal(outStream, object);
+                } catch (KuraException e) {
+                    // Do nothing...
+                }
+            }
+        };
+        
+        CryptoService cryptoServiceMock = mock(CryptoService.class);
+        cs.setCryptoService(cryptoServiceMock);
+        
+        when(cryptoServiceMock.aesEncryptingStream((OutputStream) ArgumentMatchers.any())).thenAnswer(answer -> {
+            return answer.getArgument(0, OutputStream.class);
+        });
+        
+        BundleContext bundleContext = mock(BundleContext.class);
+        TestUtil.setFieldValue(cs, "bundleContext", bundleContext);
+        
+        // Execute the writeSnapshot method
+        TestUtil.invokePrivate(cs, "writeSnapshot", sid, cfg);
+        
+        File f1 = new File(d1, "snapshot_" + sid + ".xml");
+        f1.deleteOnExit();
+        assertTrue("snapshot file was created", f1.exists());
+        
+        try {
+            // Verify file permissions are set to 600 (owner read/write only) on POSIX systems
+            Set<PosixFilePermission> permissions = Files.getPosixFilePermissions(f1.toPath());
+            Set<PosixFilePermission> expectedPerms = PosixFilePermissions.fromString("rw-------");
+            
+            assertEquals("File permissions should be 600 (owner read/write only)", expectedPerms, permissions);
+            
+            // Verify that group and others don't have any permissions
+            assertFalse("Group should not have read permission", permissions.contains(PosixFilePermission.GROUP_READ));
+            assertFalse("Group should not have write permission", permissions.contains(PosixFilePermission.GROUP_WRITE));
+            assertFalse("Others should not have read permission", permissions.contains(PosixFilePermission.OTHERS_READ));
+            assertFalse("Others should not have write permission", permissions.contains(PosixFilePermission.OTHERS_WRITE));
+            
+            // Verify that owner has both read and write permissions
+            assertTrue("Owner should have read permission", permissions.contains(PosixFilePermission.OWNER_READ));
+            assertTrue("Owner should have write permission", permissions.contains(PosixFilePermission.OWNER_WRITE));
+            assertFalse("Owner should not have execute permission", permissions.contains(PosixFilePermission.OWNER_EXECUTE));
+            
+        } catch (UnsupportedOperationException e) {
+            // This test is running on a non-POSIX filesystem (like Windows)
+            // In this case, we can't test the permissions, but we can verify the file was created
+            System.out.println("POSIX file permissions not supported on this filesystem - skipping permission verification");
+        }
+        
+        f1.delete();
+        d1.delete();
+    }
+    
+    @Test
+    public void testWriteSnapshotNonPosixFilesystem() throws Throwable {
+        // Test behavior on non-POSIX filesystems where setPosixFilePermissions is not supported
+        
+        long sid = 525L;
+        XmlComponentConfigurations cfg = prepareSnapshot();
+        final String dir = "snapshotDirNonPosix";
+        
+        File d1 = new File(dir);
+        d1.mkdirs();
+        d1.deleteOnExit();
+        
+        // Mock ConfigurationServiceImpl to simulate non-POSIX filesystem behavior
+        ConfigurationServiceImpl cs = new ConfigurationServiceImpl() {
+            @Override
+            String getSnapshotsDirectory() {
+                return dir;
+            }
+            
+            @Override
+            protected <T> T unmarshal(InputStream xmlStream, Class<T> clazz) throws KuraException {
+                XmlMarshallUnmarshallImpl xmlMarshaller = new XmlMarshallUnmarshallImpl();
+                return xmlMarshaller.unmarshal(xmlStream, clazz);
+            }
+            
+            @Override
+            protected void marshal(OutputStream outStream, Object object) {
+                XmlMarshallUnmarshallImpl xmlMarshaller = new XmlMarshallUnmarshallImpl();
+                try {
+                    xmlMarshaller.marshal(outStream, object);
+                } catch (KuraException e) {
+                    // Do nothing...
+                }
+            }
+        };
+        
+        CryptoService cryptoServiceMock = mock(CryptoService.class);
+        cs.setCryptoService(cryptoServiceMock);
+        
+        when(cryptoServiceMock.aesEncryptingStream((OutputStream) ArgumentMatchers.any())).thenAnswer(answer -> {
+            return answer.getArgument(0, OutputStream.class);
+        });
+        
+        BundleContext bundleContext = mock(BundleContext.class);
+        TestUtil.setFieldValue(cs, "bundleContext", bundleContext);
+        
+        // Execute the writeSnapshot method - should not throw exception even on non-POSIX systems
+        TestUtil.invokePrivate(cs, "writeSnapshot", sid, cfg);
+        
+        File f1 = new File(d1, "snapshot_" + sid + ".xml");
+        f1.deleteOnExit();
+        assertTrue("snapshot file was created", f1.exists());
+        
+        // On non-POSIX systems, the method should complete successfully even if permissions can't be set
+        // We can't easily mock the UnsupportedOperationException here, but this test verifies the method completes
+        
+        f1.delete();
+        d1.delete();
     }
 }

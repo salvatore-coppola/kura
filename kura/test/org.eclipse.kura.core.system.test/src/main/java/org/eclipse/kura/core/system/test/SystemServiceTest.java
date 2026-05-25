@@ -1,19 +1,19 @@
 /*******************************************************************************
- * Copyright (c) 2011, 2020 Eurotech and/or its affiliates and others
- * 
+ * Copyright (c) 2011, 2026 Eurotech and/or its affiliates and others
+ *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
  * which is available at https://www.eclipse.org/legal/epl-2.0/
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0
- * 
+ *
  * Contributors:
  *  Eurotech
  *******************************************************************************/
 package org.eclipse.kura.core.system.test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -23,16 +23,13 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.eclipse.kura.core.testutil.TestUtil;
-import org.eclipse.kura.executor.Command;
 import org.eclipse.kura.executor.CommandExecutorService;
-import org.eclipse.kura.executor.CommandStatus;
+import org.eclipse.kura.system.InternetConnectionStatus;
 import org.eclipse.kura.system.SystemService;
 import org.eclipse.kura.test.annotation.TestTarget;
 import org.junit.BeforeClass;
@@ -44,7 +41,7 @@ public class SystemServiceTest {
     private static final String LINUX = "Linux"; // Ubuntu
     private static SystemService systemService = null;
     private static CommandExecutorService executorService = null;
-    private static CountDownLatch dependencyLatch = new CountDownLatch(2);	// initialize with number of dependencies
+    private static CountDownLatch dependencyLatch = new CountDownLatch(2);    // initialize with number of dependencies
     private boolean onCloudbees = false;
 
     @BeforeClass
@@ -100,9 +97,9 @@ public class SystemServiceTest {
     @TestTarget(targetPlatforms = { TestTarget.PLATFORM_ALL })
     @Test
     public void testGetPlatform() {
-        String[] expected = { "dynacor",   					// emulated
-                "Ubuntu",   									// Ubuntu
-                "BeagleBone"								// BeagleBone
+        String[] expected = { "DevPlatform", // emulated
+                "Ubuntu",                    // Ubuntu
+                "BeagleBone"                 // BeagleBone
         };
 
         try {
@@ -122,7 +119,7 @@ public class SystemServiceTest {
     @TestTarget(targetPlatforms = { TestTarget.PLATFORM_ALL })
     @Test
     public void testGetOsDistro() {
-        String[] expected = { "DevOsDitribution",   			// emulated
+        String[] expected = { "DevOsDitribution",            // emulated
                 LINUX };
 
         try {
@@ -142,8 +139,8 @@ public class SystemServiceTest {
     @TestTarget(targetPlatforms = { TestTarget.PLATFORM_ALL })
     @Test
     public void testGetOsDistroVersion() {
-        String[] expected = { "DevOsDitributionVersion",   	// emulated
-                "N/A" 										// Ubuntu
+        String[] expected = { "DevOsDitributionVersion",    // emulated
+                "N/A"                                        // Ubuntu
         };
 
         try {
@@ -307,65 +304,43 @@ public class SystemServiceTest {
 
     @TestTarget(targetPlatforms = { TestTarget.PLATFORM_ALL })
     @Test
-    public void getModelName() throws NoSuchFieldException {
-        // remove the default value so that the command is run
-        Properties def = (Properties) TestUtil.getFieldValue(systemService.getProperties(), "defaults");
-        def.remove(SystemService.KEY_MODEL_NAME);
-
-        String modelName = systemService.getModelName();
-
-        assertNotNull(modelName);
-
-        String osName = systemService.getOsName();
-        if (!osName.contains("indows")) {
-            if (LINUX.equals(osName)) {
-                CommandStatus status = executorService.execute(new Command(new String[] { "dmidecode" }));
-                if (!status.getExitStatus().isSuccessful()) {
-                    assertEquals(UNKNOWN, modelName);
-                }
-
-                // note: this assert works locally and on travis, but not on hudson
-                // assertNotEquals("UNKNOWN", modelName);
-
-                assertNotEquals("DevModelName", modelName);
-            }
-        } else {
-            assertEquals(UNKNOWN, modelName);
-        }
-    }
-
-    @TestTarget(targetPlatforms = { TestTarget.PLATFORM_ALL })
-    @Test
     public void getPartNumber() {
         assertNotNull(systemService.getPartNumber());
     }
 
     @TestTarget(targetPlatforms = { TestTarget.PLATFORM_ALL })
     @Test
-    public void getSerialNumber() throws NoSuchFieldException {
-        // remove the default value so that the command is run
-        Properties def = (Properties) TestUtil.getFieldValue(systemService.getProperties(), "defaults");
-        def.remove(SystemService.KEY_SERIAL_NUM);
-
-        String serialNumber = systemService.getSerialNumber();
-
-        assertNotNull(serialNumber);
-
-        String osName = systemService.getOsName();
-        if (!osName.contains("indows")) {
-            if (LINUX.equals(osName)) {
-                CommandStatus status = executorService.execute(new Command(new String[] { "dmidecode" }));
-                if (!status.getExitStatus().isSuccessful()) {
-                    assertEquals(UNKNOWN, serialNumber);
-                }
-                // note: this assert works locally and on travis, but not on hudson
-                // assertNotEquals("UNKNOWN", serialNumber);
-
-                assertNotEquals("DevSerialNumber", serialNumber);
-            }
-        } else {
-            assertEquals(UNKNOWN, serialNumber);
-        }
+    public void shouldGetDefaultLogManagerProperty() {
+        assertFalse(systemService.getDefaultLogManager().isPresent());
     }
 
+    @TestTarget(targetPlatforms = { TestTarget.PLATFORM_ALL })
+    @Test
+    public void shouldGetDefaultWPA3WifiSecuritySupportProperty() {
+        assertFalse(systemService.isWPA3WifiSecurityEnabled());
+    }
+
+    @TestTarget(targetPlatforms = { TestTarget.PLATFORM_ALL })
+    @Test
+    public void shouldGetDefaultNetworkConfigurationTimeoutProperty() {
+        assertEquals(30, systemService.getNetworkConfigurationTimeout());
+    }
+
+    @TestTarget(targetPlatforms = { TestTarget.PLATFORM_ALL })
+    @Test
+    public void shouldNotBeConnectedToInternet() {
+        assertEquals(InternetConnectionStatus.UNAVAILABLE, systemService.getInternetConnectionStatus());
+    }
+
+    @TestTarget(targetPlatforms = { TestTarget.PLATFORM_ALL })
+    @Test
+    public void shouldGetDefaultInternetConnectionStatusCheckHost() {
+        assertEquals("eclipse.org", systemService.getInternetConnectionStatusCheckHost());
+    }
+
+    @TestTarget(targetPlatforms = { TestTarget.PLATFORM_ALL })
+    @Test
+    public void shouldGetDefaultInternetConnectionStatusCheckIp() {
+        assertEquals("198.41.30.198", systemService.getInternetConnectionStatusCheckIp());
+    }
 }

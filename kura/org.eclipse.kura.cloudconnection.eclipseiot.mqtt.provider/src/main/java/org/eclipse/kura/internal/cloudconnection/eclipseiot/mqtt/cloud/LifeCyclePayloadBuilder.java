@@ -1,18 +1,19 @@
 /*******************************************************************************
- * Copyright (c) 2011, 2021 Eurotech and/or its affiliates and others
- * 
+ * Copyright (c) 2011, 2025 Eurotech and/or its affiliates and others
+ *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
  * which is available at https://www.eclipse.org/legal/epl-2.0/
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0
- * 
+ *
  * Contributors:
  *  Eurotech
- *******************************************************************************/
+ ******************************************************************************/
 package org.eclipse.kura.internal.cloudconnection.eclipseiot.mqtt.cloud;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.eclipse.kura.core.util.NetUtil;
 import org.eclipse.kura.message.KuraBirthPayload;
@@ -23,10 +24,10 @@ import org.eclipse.kura.message.KuraPosition;
 import org.eclipse.kura.net.NetInterface;
 import org.eclipse.kura.net.NetInterfaceAddress;
 import org.eclipse.kura.net.NetworkService;
-import org.eclipse.kura.position.NmeaPosition;
 import org.eclipse.kura.position.PositionService;
 import org.eclipse.kura.system.SystemAdminService;
 import org.eclipse.kura.system.SystemService;
+import org.osgi.util.position.Position;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,8 +81,7 @@ public class LifeCyclePayloadBuilder {
                 .withTotalMemory(deviceProfile.getTotalMemory()).withOsArch(deviceProfile.getOsArch())
                 .withOsgiFramework(deviceProfile.getOsgiFramework())
                 .withOsgiFrameworkVersion(deviceProfile.getOsgiFrameworkVersion()).withPayloadEncoding(payloadEncoding)
-                .withJvmVendor(deviceProfile.getJvmVendor())
-                .withJdkVendorVersion(deviceProfile.getJdkVendorVersion());
+                .withJvmVendor(deviceProfile.getJvmVendor()).withJdkVendorVersion(deviceProfile.getJdkVendorVersion());
 
         if (this.cloudConnectionManagerImpl.imei != null && this.cloudConnectionManagerImpl.imei.length() > 0
                 && !this.cloudConnectionManagerImpl.imei.equals(ERROR)) {
@@ -135,49 +135,48 @@ public class LifeCyclePayloadBuilder {
     public KuraDeviceProfile buildDeviceProfile() {
         SystemService systemService = this.cloudConnectionManagerImpl.getSystemService();
         SystemAdminService sysAdminService = this.cloudConnectionManagerImpl.getSystemAdminService();
-        NetworkService networkService = this.cloudConnectionManagerImpl.getNetworkService();
-        PositionService positionService = this.cloudConnectionManagerImpl.getPositionService();
+        Optional<NetworkService> networkService = this.cloudConnectionManagerImpl.getNetworkService();
+        Optional<PositionService> positionService = this.cloudConnectionManagerImpl.getPositionService();
 
         //
         // get the network information
-        StringBuilder sbConnectionIp = null;
-        StringBuilder sbConnectionInterface = null;
-        try {
-            List<NetInterface<? extends NetInterfaceAddress>> nis = networkService.getActiveNetworkInterfaces();
-            if (!nis.isEmpty()) {
-                sbConnectionIp = new StringBuilder();
-                sbConnectionInterface = new StringBuilder();
-
-                for (NetInterface<? extends NetInterfaceAddress> ni : nis) {
-                    List<? extends NetInterfaceAddress> nias = ni.getNetInterfaceAddresses();
-                    if (nias != null && !nias.isEmpty()) {
-                        sbConnectionInterface.append(buildConnectionInterface(ni)).append(",");
-                        sbConnectionIp.append(buildConnectionIp(ni)).append(",");
+        StringBuilder sbConnectionIp = new StringBuilder();
+        StringBuilder sbConnectionInterface = new StringBuilder();
+        networkService.ifPresent(ns -> {
+            try {
+                List<NetInterface<? extends NetInterfaceAddress>> nis = ns.getActiveNetworkInterfaces();
+                if (!nis.isEmpty()) {
+                    for (NetInterface<? extends NetInterfaceAddress> ni : nis) {
+                        List<? extends NetInterfaceAddress> nias = ni.getNetInterfaceAddresses();
+                        if (nias != null && !nias.isEmpty()) {
+                            sbConnectionInterface.append(buildConnectionInterface(ni)).append(",");
+                            sbConnectionIp.append(buildConnectionIp(ni)).append(",");
+                        }
                     }
+
+                    // Remove trailing comma
+                    sbConnectionIp.deleteCharAt(sbConnectionIp.length() - 1);
+                    sbConnectionInterface.deleteCharAt(sbConnectionInterface.length() - 1);
                 }
-
-                // Remove trailing comma
-                sbConnectionIp.deleteCharAt(sbConnectionIp.length() - 1);
-                sbConnectionInterface.deleteCharAt(sbConnectionInterface.length() - 1);
+            } catch (Exception se) {
+                logger.warn("Error while getting ConnetionIP and ConnectionInterface", se);
             }
-        } catch (Exception se) {
-            logger.warn("Error while getting ConnetionIP and ConnectionInterface", se);
-        }
+        });
 
-        String connectionIp = sbConnectionIp != null ? sbConnectionIp.toString() : UNKNOWN;
-        String connectionInterface = sbConnectionInterface != null ? sbConnectionInterface.toString() : UNKNOWN;
+        String connectionIp = !sbConnectionIp.isEmpty() ? sbConnectionIp.toString() : UNKNOWN;
+        String connectionInterface = !sbConnectionInterface.isEmpty() ? sbConnectionInterface.toString() : UNKNOWN;
 
         //
         // get the position information
         double latitude = 0.0;
         double longitude = 0.0;
         double altitude = 0.0;
-        if (positionService != null) {
-            NmeaPosition position = positionService.getNmeaPosition();
+        if (positionService.isPresent()) {
+            Position position = positionService.get().getPosition();
             if (position != null) {
-                latitude = position.getLatitude();
-                longitude = position.getLongitude();
-                altitude = position.getAltitude();
+                latitude = Math.toDegrees(position.getLatitude().getValue());
+                longitude = Math.toDegrees(position.getLongitude().getValue());
+                altitude = position.getAltitude().getValue();
             } else {
                 logger.warn("Unresolved PositionService reference.");
             }

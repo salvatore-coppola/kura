@@ -1,12 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2011, 2022 Eurotech and/or its affiliates and others
- * 
+ * Copyright (c) 2011, 2026 Eurotech and/or its affiliates and others
+ *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
  * which is available at https://www.eclipse.org/legal/epl-2.0/
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0
- * 
+ *
  * Contributors:
  *  Eurotech
  *  Red Hat Inc 
@@ -20,12 +20,17 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.xml.stream.FactoryConfigurationError;
 import javax.xml.stream.XMLStreamException;
 
 import org.eclipse.kura.KuraErrorCode;
 import org.eclipse.kura.KuraException;
+import org.eclipse.kura.configuration.ComponentConfiguration;
 import org.eclipse.kura.configuration.Password;
 import org.eclipse.kura.configuration.metatype.AD;
 import org.eclipse.kura.configuration.metatype.Designate;
@@ -477,4 +482,106 @@ public class ComponentUtil {
         }
         return result;
     }
+
+    /*
+     * Encrypt a list of {@link org.eclipse.kura.ComponentConfiguration}s using the given CryptoService
+     */
+    public static void encryptConfigs(List<ComponentConfiguration> configs, final CryptoService cryptoService) {
+        if (configs != null) {
+            for (ComponentConfiguration config : configs) {
+                encryptConfigurationProperties(config.getConfigurationProperties(), cryptoService);
+            }
+        }
+    }
+
+    /*
+     * Encrypt a map of properties using the given CryptoService
+     */
+    public static void encryptConfigurationProperties(Map<String, Object> propertiesToUpdate,
+            final CryptoService cryptoService) {
+        encryptConfigurationProperties(propertiesToUpdate, cryptoService, false);
+    }
+
+    public static Map<String, Object> encryptConfigurationProperties(final Map<String, Object> original,
+            final CryptoService cryptoService, final boolean clone) {
+        if (original == null) {
+            return null;
+        }
+
+        Optional<Map<String, Object>> result = Optional.empty();
+
+        if (!clone) {
+            result = Optional.of(original);
+        }
+
+        for (Entry<String, Object> property : original.entrySet()) {
+            Object configValue = property.getValue();
+            if (configValue instanceof Password || configValue instanceof Password[]) {
+
+                final Map<String, Object> resultProperties;
+
+                if (result.isPresent()) {
+                    resultProperties = result.get();
+                } else {
+                    resultProperties = new HashMap<>(original);
+                    result = Optional.of(resultProperties);
+                }
+
+                try {
+                    Object encryptedValue = encryptPasswordProperties(configValue, cryptoService);
+                    resultProperties.put(property.getKey(), encryptedValue);
+                } catch (KuraException e) {
+                    logger.warn("Failed to encrypt Password property: {}", property.getKey());
+                    resultProperties.remove(property.getKey());
+                }
+            }
+        }
+
+        return result.orElse(original);
+    }
+
+    private static Object encryptPasswordProperties(Object configValue, final CryptoService cryptoService)
+            throws KuraException {
+        Object encryptedValue = null;
+        if (configValue instanceof Password) {
+            encryptedValue = encryptPassword((Password) configValue, cryptoService);
+
+        } else if (configValue instanceof Password[]) {
+            Password[] passwordArray = (Password[]) configValue;
+            Password[] encryptedPasswords = new Password[passwordArray.length];
+
+            for (int i = 0; i < passwordArray.length; i++) {
+                encryptedPasswords[i] = encryptPassword(passwordArray[i], cryptoService);
+            }
+            encryptedValue = encryptedPasswords;
+        }
+        return encryptedValue;
+    }
+
+    private static boolean isEncrypted(Password configPassword, final CryptoService cryptoService) {
+        boolean result = false;
+        try {
+            cryptoService.decryptAes(configPassword.getPassword());
+            result = true;
+        } catch (Exception e) {
+            // Do nothing...
+        }
+        return result;
+    }
+
+    private static Password encryptPassword(Password password, final CryptoService cryptoService) throws KuraException {
+        if (!isEncrypted(password, cryptoService)) {
+            return new Password(cryptoService.encryptAes(password.getPassword()));
+        }
+        return password;
+    }
+
+    /*
+     * Converts a list of {@link org.eclipse.kura.core.configuration.ComponentConfiguration}s to a map whose keys are
+     * the component pids.
+     */
+    public static Map<String, ComponentConfiguration> toMap(final List<ComponentConfiguration> configs) {
+        return configs.stream().collect(Collectors.toMap(ComponentConfiguration::getPid, Function.identity()));
+    }
+
 }

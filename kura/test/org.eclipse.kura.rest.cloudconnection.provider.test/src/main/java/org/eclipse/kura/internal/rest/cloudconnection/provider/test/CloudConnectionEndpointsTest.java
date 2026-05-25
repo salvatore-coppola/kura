@@ -1,15 +1,15 @@
 /*******************************************************************************
- * Copyright (c) 2023 Eurotech and/or its affiliates and others
- * 
+ * Copyright (c) 2023, 2026 Eurotech and/or its affiliates and others
+ *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
  * which is available at https://www.eclipse.org/legal/epl-2.0/
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0
- * 
+ *
  * Contributors:
  *  Eurotech
- *******************************************************************************/
+ ******************************************************************************/
 package org.eclipse.kura.internal.rest.cloudconnection.provider.test;
 
 import static org.junit.Assert.fail;
@@ -20,7 +20,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Scanner;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.eclipse.kura.KuraException;
 import org.eclipse.kura.cloudconnection.CloudConnectionConstants;
@@ -140,9 +143,11 @@ public class CloudConnectionEndpointsTest extends AbstractRequestHandlerTest {
     }
 
     @Test
-    public void shouldDeleteCloudEndpoint() {
-        givenExistingCloudEndpoint("org.eclipse.kura.cloud.CloudService-toDelete" + this.getTransportType());
+    public void shouldDeleteCloudEndpoint() throws InterruptedException, ExecutionException, TimeoutException {
+        givenNewCloudEndpoint("org.eclipse.kura.cloud.CloudService-toDelete" + this.getTransportType());
         givenCloudConnectionFactoryPidAndCloudEndpointPid("org.eclipse.kura.cloud.CloudService",
+                "org.eclipse.kura.cloud.CloudService-toDelete" + this.getTransportType());
+        givenExistingCloudEndpoint("org.eclipse.kura.cloud.CloudService",
                 "org.eclipse.kura.cloud.CloudService-toDelete" + this.getTransportType());
 
         whenRequestIsPerformed(new MethodSpec(METHOD_SPEC_DELETE, MQTT_METHOD_SPEC_DEL), "/cloudEndpoint",
@@ -183,7 +188,8 @@ public class CloudConnectionEndpointsTest extends AbstractRequestHandlerTest {
     }
 
     @Test
-    public void shouldDeletePublisherInstance() {
+    public void shouldDeletePublisherInstance()
+            throws KuraException, InterruptedException, ExecutionException, TimeoutException {
         givenPubSubInstance("pub-to-delete-" + this.getTransportType(),
                 "org.eclipse.kura.cloud.publisher.CloudPublisher", CLOUD_ENDPOINT_INSTANCE_TEST);
         givenPid("pub-to-delete-" + this.getTransportType());
@@ -194,7 +200,8 @@ public class CloudConnectionEndpointsTest extends AbstractRequestHandlerTest {
     }
 
     @Test
-    public void shouldDeleteSubscriberInstance() {
+    public void shouldDeleteSubscriberInstance()
+            throws KuraException, InterruptedException, ExecutionException, TimeoutException {
         givenPubSubInstance("sub-to-delete-" + this.getTransportType(),
                 "org.eclipse.kura.cloud.subscriber.CloudSubscriber", CLOUD_ENDPOINT_INSTANCE_TEST);
         givenPid("sub-to-delete-" + this.getTransportType());
@@ -287,7 +294,7 @@ public class CloudConnectionEndpointsTest extends AbstractRequestHandlerTest {
         this.pidSet = new PidSet(new HashSet<String>(Arrays.asList(pids)));
     }
 
-    private void givenExistingCloudEndpoint(String cloudEndpointPid) {
+    private void givenNewCloudEndpoint(String cloudEndpointPid) {
         try {
             cloudConnectionFactory.createConfiguration(cloudEndpointPid);
 
@@ -297,15 +304,21 @@ public class CloudConnectionEndpointsTest extends AbstractRequestHandlerTest {
         }
     }
 
-    private void givenPubSubInstance(String pid, String factoryPid, String cloudEndpointPid) {
-        try {
-            configurationService.createFactoryConfiguration(factoryPid, pid, Collections.singletonMap(
-                    CloudConnectionConstants.CLOUD_ENDPOINT_SERVICE_PID_PROP_NAME.value(), cloudEndpointPid), true);
-        } catch (KuraException e) {
-            e.printStackTrace();
-            fail("Unable to create pubSub instance");
-        }
+    private void givenExistingCloudEndpoint(String cloudConnectionFactoryPid, String cloudEndpointPid)
+            throws InterruptedException, ExecutionException, TimeoutException {
+        CompletableFuture<Object> trackFuture = ServiceUtil.trackService(cloudConnectionFactoryPid,
+                Optional.of(String.format("(kura.service.pid=%s)", cloudEndpointPid)));
+        trackFuture.get(5, TimeUnit.SECONDS);
+    }
 
+    private void givenPubSubInstance(String pid, String factoryPid, String cloudEndpointPid)
+            throws KuraException, InterruptedException, ExecutionException, TimeoutException {
+        configurationService.createFactoryConfiguration(factoryPid, pid, Collections.singletonMap(
+                CloudConnectionConstants.CLOUD_ENDPOINT_SERVICE_PID_PROP_NAME.value(), cloudEndpointPid), true);
+        CompletableFuture<Object> trackFuture = ServiceUtil.trackService(
+                "org.eclipse.kura.configuration.ConfigurableComponent",
+                Optional.of(String.format("(kura.service.pid=%s)", pid)));
+        trackFuture.get(5, TimeUnit.SECONDS);
     }
 
 }

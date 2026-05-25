@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Copyright (c) 2011, 2024 Eurotech and/or its affiliates and others
+
+    Copyright (c) 2011, 2026 Eurotech and/or its affiliates and others
 
     This program and the accompanying materials are made
     available under the terms of the Eclipse Public License 2.0
     which is available at https://www.eclipse.org/legal/epl-2.0/
 
-	SPDX-License-Identifier: EPL-2.0
+    SPDX-License-Identifier: EPL-2.0
 
-	Contributors:
-	 Eurotech
+    Contributors:
+     Eurotech
      Red Hat Inc
      Cavium
 
@@ -21,124 +22,78 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.eclipse.kura</groupId>
     <artifactId>kura</artifactId>
-    <version>5.5.0-SNAPSHOT</version>
+    <version>6.0.0-SNAPSHOT</version>
 
     <packaging>pom</packaging>
 
     <modules>
+        <module>kura-pde-deps</module>
         <module>target-definition</module>
         <module>org.eclipse.kura.api</module>
-        <module>org.eclipse.kura.asset.cloudlet.provider</module>
-        <module>org.eclipse.kura.asset.provider</module>
-        <module>org.eclipse.kura.asset.helper.provider</module>
-        <module>org.eclipse.kura.broker.artemis.core</module>
-        <module>org.eclipse.kura.broker.artemis.simple.mqtt</module>
-        <module>org.eclipse.kura.broker.artemis.xml</module>
         <module>org.eclipse.kura.camel</module>
         <module>org.eclipse.kura.camel.cloud.factory</module>
         <module>org.eclipse.kura.camel.xml</module>
         <module>org.eclipse.kura.core</module>
         <module>org.eclipse.kura.core.certificates</module>
         <module>org.eclipse.kura.core.keystore</module>
-        <module>org.eclipse.kura.core.cloud</module>
+        <module>org.eclipse.kura.cloud.base.provider</module>
         <module>org.eclipse.kura.core.cloud.factory</module>
         <module>org.eclipse.kura.core.comm</module>
         <module>org.eclipse.kura.core.configuration</module>
         <module>org.eclipse.kura.core.crypto</module>
-        <module>org.eclipse.kura.core.deployment</module>
         <module>org.eclipse.kura.core.identity</module>
         <module>org.eclipse.kura.core.inventory</module>
-        <module>org.eclipse.kura.core.net</module>
         <module>org.eclipse.kura.core.status</module>
         <module>org.eclipse.kura.core.system</module>
-        <module>org.eclipse.kura.deployment.agent</module>
-        <module>org.eclipse.kura.hook.file.move.provider</module>
         <module>org.eclipse.kura.driver.helper.provider</module>
-        <module>org.eclipse.kura.driver.opcua.provider</module>
         <module>org.eclipse.kura.driver.block</module>
         <module>org.eclipse.kura.driver.s7plc.provider</module>
-        <module>org.eclipse.kura.driver.ble.sensortag.provider</module>
-        <module>org.eclipse.kura.driver.ble.xdk</module>
-        <module>org.eclipse.kura.driver.ibeacon.provider</module>
-        <module>org.eclipse.kura.driver.gpio.provider</module>
-        <module>org.eclipse.kura.driver.eddystone.provider</module>
-        <module>org.eclipse.kura.linux.bluetooth</module>
-        <module>org.eclipse.kura.ble.provider</module>
-        <module>org.eclipse.kura.ble.ibeacon.provider</module>
-        <module>org.eclipse.kura.ble.eddystone.provider</module>
         <module>org.eclipse.kura.linux.clock</module>
-        <module>org.eclipse.kura.linux.command</module>
-        <module>org.eclipse.kura.linux.gpio</module>
-        <module>org.eclipse.kura.linux.net</module>
-        <module>org.eclipse.kura.linux.position</module>
         <module>org.eclipse.kura.linux.usb</module>
-        <module>org.eclipse.kura.linux.usb.armv6hf</module>
         <module>org.eclipse.kura.linux.usb.x86_64</module>
         <module>org.eclipse.kura.linux.usb.aarch64</module>
         <module>org.eclipse.kura.linux.watchdog</module>
-        <module>org.eclipse.kura.localization</module>
-        <module>org.eclipse.kura.localization.resources</module>
-        <module>org.eclipse.kura.net.admin</module>
-        <module>org.eclipse.kura.net.configuration</module>
-        <module>org.eclipse.kura.nm</module>
-        <module>org.eclipse.kura.net.admin.firewall</module>
         <module>org.eclipse.kura.protocol.modbus</module>
         <module>org.eclipse.kura.stress</module>
         <module>org.eclipse.kura.util</module>
         <module>org.eclipse.kura.wire.camel</module>
-        <module>org.eclipse.kura.wire.db.component.provider</module>
-        <module>org.eclipse.kura.wire.h2db.component.provider</module>
-        <module>org.eclipse.kura.wire.component.provider</module>
-        <module>org.eclipse.kura.wire.helper.provider</module>
-        <module>org.eclipse.kura.wire.provider</module>
         <module>org.eclipse.kura.rest.provider</module>
-        <module>org.eclipse.kura.rest.asset.provider</module>
         <module>org.eclipse.kura.misc.cloudcat</module>
         <module>org.eclipse.kura.json.marshaller.unmarshaller.provider</module>
         <module>org.eclipse.kura.xml.marshaller.unmarshaller.provider</module>
-        <module>org.eclipse.kura.wire.component.join.provider</module>
         <module>org.eclipse.kura.cloudconnection.eclipseiot.mqtt.provider</module>
         <module>org.eclipse.kura.cloudconnection.raw.mqtt.provider</module>
-        <module>org.eclipse.kura.linux.sysv.provider</module>
-        <module>org.eclipse.kura.linux.systemd.provider</module>
-        <module>org.eclipse.kura.linux.debian.provider</module>
-        <module>org.eclipse.kura.linux.redhat.provider</module>
         <module>org.eclipse.kura.http.server.manager</module>
         <module>org.eclipse.kura.useradmin.store</module>
-        <module>org.eclipse.kura.network.threat.manager</module>
-        <module>org.eclipse.kura.core.tamper.detection</module>
+        <module>org.eclipse.kura.rest.tamper.detection.provider</module>
         <module>org.eclipse.kura.log.filesystem.provider</module>
         <module>org.eclipse.kura.rest.cloudconnection.provider</module>
         <module>org.eclipse.kura.rest.configuration.provider</module>
-        <module>org.eclipse.kura.rest.network.configuration.provider</module>
         <module>org.eclipse.kura.rest.identity.provider</module>
         <module>org.eclipse.kura.rest.inventory.provider</module>
-        <module>org.eclipse.kura.rest.command.provider</module>
-        <module>org.eclipse.kura.rest.packages.provider</module>
-        <module>org.eclipse.kura.rest.position.provider</module>
+        <module>org.eclipse.kura.rest.keystore.provider</module>
         <module>org.eclipse.kura.rest.security.provider</module>
         <module>org.eclipse.kura.rest.service.listing.provider</module>
         <module>org.eclipse.kura.rest.system.provider</module>
         <module>org.eclipse.kura.request.handler.jaxrs</module>
-        <module>org.eclipse.kura.rest.wire.provider</module>
         <module>org.eclipse.kura.container.orchestration.provider</module>
-        <module>org.eclipse.kura.ai.triton.server</module>
-        <module>org.eclipse.kura.wire.ai.component.provider</module>
         <module>org.eclipse.kura.container.provider</module>
         <module>org.eclipse.kura.event.publisher</module>
         <module>org.eclipse.kura.configuration.change.manager</module>
-        <module>org.eclipse.kura.wire.script.tools</module>
         <module>org.eclipse.kura.db.sqlite.provider</module>
-        <module>org.eclipse.kura.rest.network.status.provider</module>
+        <module>org.eclipse.kura.db.h2db.provider</module>
         <module>org.eclipse.kura.cloudconnection.sparkplug.mqtt.provider</module>
+        <module>org.eclipse.kura.cloudconnection.kapua.mqtt.provider</module>
+        <module>org.eclipse.kura.jul.to.slf4j.configuration</module>
         <module>emulator</module>
         <module>test-util</module>
+        <module>tools</module>
     </modules>
 
     <properties>
         <!-- SCM: Note that we are in the "kura" sub-dir here already -->
         <tycho.scmUrl>scm:git:ssh://github.com/eclipse/kura/kura</tycho.scmUrl>
-        <tycho-version>1.7.0</tycho-version>
+        <tycho-version>5.0.2</tycho-version>
         <osgi-dp-plugin-version>0.3.0</osgi-dp-plugin-version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -146,30 +101,39 @@
         <kura.basedir>${project.basedir}</kura.basedir>
         <kura.build.version>${maven.build.timestamp}</kura.build.version>
         <bnd.baseline.continueOnError>false</bnd.baseline.continueOnError>
-        <kura.skip.can>true</kura.skip.can>
         <check.plugins.exist.remote>false</check.plugins.exist.remote>
-        <kura.addons.url>https://raw.github.com/eurotech/kura_addons/mvn-repo/</kura.addons.url>
+        <kura.addons.url>https://artifactory.dev.everyware.io/artifactory/kura-addons</kura.addons.url>
 
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.release>21</maven.compiler.release>
 
-        <!-- plugins versions common to Java 8 and Java 17 builds -->
         <bnd.baseline.version>6.3.1</bnd.baseline.version>
         <exists-maven-plugin.version>0.0.3</exists-maven-plugin.version>
         <findbugs-maven-plugin.version>3.0.5</findbugs-maven-plugin.version>
-        <jacoco.version>0.8.8</jacoco.version>
+        <jacoco.version>0.8.13</jacoco.version>
         <lifecycle-mapping.version>1.0.0</lifecycle-mapping.version>
         <license-maven-plugin.version>2.2</license-maven-plugin.version>
         <maven-antrun-plugin.version>1.8</maven-antrun-plugin.version>
-        <maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
+        <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
         <maven-checkstyle-plugin.version>3.1.0</maven-checkstyle-plugin.version>
         <maven-deploy-plugin.version>3.0.0</maven-deploy-plugin.version>
-        <maven-eclipse-plugin.version>2.10</maven-eclipse-plugin.version>
         <maven-site-plugin.version>3.3</maven-site-plugin.version>
         <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
+        <maven-clean-plugin.version>3.2.0</maven-clean-plugin.version>
         <slf4j.version>1.7.36</slf4j.version>
         <wagon-ssh.version>1.0-beta-6</wagon-ssh.version>
-        <properties-maven-plugin.version>1.0-alpha-2</properties-maven-plugin.version>
+        <properties-maven-plugin.version>1.2.1</properties-maven-plugin.version>
+        <bnd.version>7.1.0</bnd.version>
+
+        <!-- external dependencies, embedded in some bundles that are not available in target platform -->
+        <org.eclipse.paho.client.mqttv3.version>1.2.1</org.eclipse.paho.client.mqttv3.version>
+        <perfmark-api.version>0.26.0</perfmark-api.version>
+        <protobuf.version>4.30.2</protobuf.version>
+        <docker-java.version>3.5.3</docker-java.version>
+        <httpcore5.version>5.3.4</httpcore5.version>
+        <jna.version>5.17.0</jna.version>
+        <commons-compress.version>1.27.1</commons-compress.version>
+        <commons-codec.version>1.18.0</commons-codec.version>
+        <httpclient5.version>5.5</httpclient5.version>
     </properties>
 
     <distributionManagement>
@@ -185,136 +149,503 @@
         </snapshotRepository>
     </distributionManagement>
 
-    <pluginRepositories>
-        <pluginRepository>
-            <id>dash-licenses-snapshots</id>
-            <url>https://repo.eclipse.org/content/repositories/dash-licenses-snapshots/</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </pluginRepository>
-    </pluginRepositories>
+    <dependencyManagement>
+        <dependencies>
+            <!--
+            External dependencies, embedded in some bundles that are not available in target platform.
+            Excluding all the transitive dependencies since we are declaring all the required ones explicitly.
+            -->
+            <dependency>
+                <groupId>org.eclipse.paho</groupId>
+                <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
+                <version>${org.eclipse.paho.client.mqttv3.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java-util</artifactId>
+                <version>${protobuf.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>com.github.docker-java</groupId>
+                <artifactId>docker-java</artifactId>
+                <version>${docker-java.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>com.github.docker-java</groupId>
+                <artifactId>docker-java-core</artifactId>
+                <version>${docker-java.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>com.github.docker-java</groupId>
+                <artifactId>docker-java-api</artifactId>
+                <version>${docker-java.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>com.github.docker-java</groupId>
+                <artifactId>docker-java-transport</artifactId>
+                <version>${docker-java.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>com.github.docker-java</groupId>
+                <artifactId>docker-java-transport-httpclient5</artifactId>
+                <version>${docker-java.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents.client5</groupId>
+                <artifactId>httpclient5</artifactId>
+                <version>${httpclient5.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents.core5</groupId>
+                <artifactId>httpcore5</artifactId>
+                <version>${httpcore5.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents.core5</groupId>
+                <artifactId>httpcore5-h2</artifactId>
+                <version>${httpcore5.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>net.java.dev.jna</groupId>
+                <artifactId>jna</artifactId>
+                <version>${jna.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>${commons-compress.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>${commons-codec.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <!-- Kura BOM -->
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.api</artifactId>
+                <version>3.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.camel</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.camel.cloud.factory</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.camel.xml</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.cloud.base.provider</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.cloudconnection.eclipseiot.mqtt.provider</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.cloudconnection.kapua.mqtt.provider</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.cloudconnection.raw.mqtt.provider</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.cloudconnection.sparkplug.mqtt.provider</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.configuration.change.manager</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.container.orchestration.provider</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.container.provider</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.core</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.core.certificates</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.core.cloud.factory</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.core.comm</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.core.configuration</artifactId>
+                <version>3.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.core.crypto</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.core.identity</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.core.inventory</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.core.keystore</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.core.status</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.core.system</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.rest.tamper.detection.provider</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.db.h2db.provider</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.db.sqlite.provider</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.driver.block</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.driver.helper.provider</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.driver.s7plc.provider</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.emulator</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.emulator.clock</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.emulator.gpio</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.emulator.net</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.emulator.position</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.emulator.usb</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.emulator.watchdog</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.event.publisher</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.http.server.manager</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.json.marshaller.unmarshaller.provider</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.linux.clock</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.linux.usb</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.linux.usb.aarch64</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.linux.usb.x86_64</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.linux.watchdog</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.log.filesystem.provider</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.misc.cloudcat</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.protocol.modbus</artifactId>
+                <version>3.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.request.handler.jaxrs</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.rest.cloudconnection.provider</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.rest.configuration.provider</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.rest.identity.provider</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.rest.inventory.provider</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.rest.keystore.provider</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.rest.provider</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.rest.security.provider</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.rest.service.listing.provider</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.rest.system.provider</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.stress</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.useradmin.store</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.util</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.wire.camel</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.xml.marshaller.unmarshaller.provider</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.jul.to.slf4j.configuration</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.core.testutil</artifactId>
+                <version>6.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.test</artifactId>
+                <version>6.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.kura</groupId>
+                <artifactId>org.eclipse.kura.util.test.driver</artifactId>
+                <version>6.0.0-SNAPSHOT</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <profiles>
-        <profile>
-            <id>java8</id>
-            <activation>
-                <jdk>1.8</jdk>
-            </activation>
-            <properties>
-                <osgi-dp-plugin-version>0.3.0</osgi-dp-plugin-version>
-                <tycho-version>1.7.0</tycho-version>
-
-                <tycho.surefire.testenv.args>
-                    -DbuildingWithTycho=true -Dosgi.locking=none
-                    -Dds.showtrace=true
-                    -Djava.io.tmpdir=/tmp
-                    -Dorg.osgi.framework.storage=/tmp/osgi/framework_storage
-                    -Dosgi.clean=true
-                    -Dkura.home=${project.basedir}/target/kura
-                    -Dkura.plugins=${project.basedir}/target/kura/plugins
-                    -Dkura.packages=${project.basedir}/target/kura/data/packages
-                    -Dkura.data=${project.basedir}/target/kura
-                    -Dkura.tmp=${project.basedir}/target/kura/tmp
-                    -Dkura.snapshots=${project.basedir}/target/kura/user/snapshots
-                    -Dkura.configuration=file:${kura.basedir}/emulator/org.eclipse.kura.emulator/src/main/resources/kura.properties
-                    -Dlog4j.configurationFile=file:${kura.basedir}/emulator/org.eclipse.kura.emulator/src/main/resources/log4j.xml
-                    -Dorg.eclipse.kura.mode=emulator
-                    -Dorg.eclipse.equinox.http.jetty.customizer.class=org.eclipse.kura.jetty.customizer.KuraJettyCustomizer
-                    -Ddpa.configuration=/tmp/kura/dpa.properties
-                    -Dosgi.console=5002
-                </tycho.surefire.testenv.args>
-            </properties>
-            <!--
-                TODO: the features module need a fix on the osgi-dp plugin for
-                working with Tycho 3.
-
-                org.eclipse.kura-p2 is working only with Java 8, we do not
-                know what this module does.
-            -->
-            <modules>
-                <module>org.eclipse.kura.wire.script.filter.provider</module>
-                <module>org.eclipse.kura.wire.component.conditional.provider</module>
-                <module>features</module>
-                <module>org.eclipse.kura-p2</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>java17</id>
-            <activation>
-                <jdk>17</jdk>
-            </activation>
-            <properties>
-                <!-- TODO: update when new version is released to be working with Tycho 3. -->
-                <osgi-dp-plugin-version>0.3.0</osgi-dp-plugin-version>
-                <tycho-version>3.0.0</tycho-version>
-
-                <tycho.surefire.testenv.args>
-                    -DbuildingWithTycho=true -Dosgi.locking=none
-                    -Dds.showtrace=true
-                    -Djava.io.tmpdir=/tmp
-                    -Dorg.osgi.framework.storage=/tmp/osgi/framework_storage
-                    -Dosgi.clean=true
-                    -Dkura.home=${project.basedir}/target/kura
-                    -Dkura.plugins=${project.basedir}/target/kura/plugins
-                    -Dkura.packages=${project.basedir}/target/kura/data/packages
-                    -Dkura.data=${project.basedir}/target/kura
-                    -Dkura.tmp=${project.basedir}/target/kura/tmp
-                    -Dkura.snapshots=${project.basedir}/target/kura/user/snapshots
-                    -Dkura.configuration=file:${kura.basedir}/emulator/org.eclipse.kura.emulator/src/main/resources/kura.properties
-                    -Dlog4j.configurationFile=file:${kura.basedir}/emulator/org.eclipse.kura.emulator/src/main/resources/log4j.xml
-                    -Dorg.eclipse.kura.mode=emulator
-                    -Dorg.eclipse.equinox.http.jetty.customizer.class=org.eclipse.kura.jetty.customizer.KuraJettyCustomizer
-                    -Ddpa.configuration=/tmp/kura/dpa.properties
-                    -Dosgi.console=5002
-                    --add-opens java.base/java.lang=ALL-UNNAMED
-                    --add-opens java.base/java.util=ALL-UNNAMED
-                </tycho.surefire.testenv.args>
-            </properties>
-        </profile>
-        <profile>
-            <id>default</id>
-            <activation>
-                <property>
-                    <name>!kura.osgi</name>
-                </property>
-            </activation>
-            <repositories>
-                <repository>
-                    <id>p2-repo-equinox_3.16.0</id>
-                    <layout>p2</layout>
-                    <url>file:///${kura.basedir}/target-definition/equinox_3.16.0/repository/</url>
-                </repository>
-            </repositories>
-        </profile>
-        <profile>
-            <id>equinox</id>
-            <activation>
-                <property>
-                    <name>kura.osgi</name>
-                    <value>equinox</value>
-                </property>
-            </activation>
-            <repositories>
-                <repository>
-                    <id>p2-repo-equinox_3.16.0</id>
-                    <layout>p2</layout>
-                    <url>file:///${kura.basedir}/target-definition/equinox_3.16.0/repository/</url>
-                </repository>
-            </repositories>
-        </profile>
-        <profile>
-            <id>can</id>
-            <activation>
-                <property>
-                    <name>kura.skip.can</name>
-                    <value>false</value>
-                </property>
-            </activation>
-            <modules>
-                <module>org.eclipse.kura.protocol.can</module>
-            </modules>
-        </profile>
         <profile>
             <id>javadocs</id>
             <activation>
@@ -359,24 +690,6 @@
                 <module>test</module>
             </modules>
         </profile>
-
-        <profile>
-            <id>web</id>
-            <properties>
-                <org.eclipse.kura.web.skip>false</org.eclipse.kura.web.skip>
-            </properties>
-            <activation>
-                <!-- deactivated if noweb property is selected -->
-                <property>
-                    <name>kura.skip.web</name>
-                    <value>!true</value>
-                </property>
-            </activation>
-            <modules>
-                <module>org.eclipse.kura.web2</module>
-                <module>org.eclipse.kura.web2.ext</module>
-            </modules>
-        </profile>
         <profile>
             <id>check-exists-plugin</id>
             <properties>
@@ -392,16 +705,6 @@
             <layout>p2</layout>
         </repository>
         <repository>
-            <id>p2-repo-common</id>
-            <layout>p2</layout>
-            <url>file:///${kura.basedir}/target-definition/common/repository/</url>
-        </repository>
-        <repository>
-            <id>p2-repo-test-deps</id>
-            <layout>p2</layout>
-            <url>file:///${kura.basedir}/target-definition/test-deps/repository/</url>
-        </repository>
-        <repository>
             <id>kura_addons</id>
             <name>Eclipse Kura Addons Maven Repository</name>
             <url>${kura.addons.url}</url>
@@ -415,9 +718,15 @@
             https://github.com/bndtools/bnd/issues/1755
         -->
         <repository>
-            <id>repo.eclipse.org</id>
+            <id>repo.eclipse.org.releases</id>
             <name>Eclipse Kura Repository - Releases</name>
             <url>https://repo.eclipse.org/content/repositories/kura-releases/</url>
+        </repository>
+
+        <repository>
+            <id>repo.eclipse.org.snapshot</id>
+            <name>Eclipse Kura Repository - Releases</name>
+            <url>https://repo.eclipse.org/content/repositories/kura-snapshots/</url>
         </repository>
     </repositories>
 
@@ -470,8 +779,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${maven-compiler-plugin.version}</version>
                 <configuration>
-                    <source>${maven.compiler.source}</source>
-                    <target>${maven.compiler.target}</target>
+                    <release>${maven.compiler.release}</release>
                 </configuration>
             </plugin>
             <plugin>
@@ -486,37 +794,10 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-eclipse-plugin</artifactId>
-                <version>${maven-eclipse-plugin.version}</version>
-                <configuration>
-                    <skip>true</skip>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-deploy-plugin</artifactId>
                 <version>${maven-deploy-plugin.version}</version>
                 <configuration>
                     <skip>false</skip>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.eclipse.tycho</groupId>
-                <artifactId>target-platform-configuration</artifactId>
-                <version>${tycho-version}</version>
-                <configuration>
-                    <environments>
-                        <environment>
-                            <os>win32</os>
-                            <ws>win32</ws>
-                            <arch>x86</arch>
-                        </environment>
-                        <environment>
-                            <os>linux</os>
-                            <ws>gtk</ws>
-                            <arch>x86</arch>
-                        </environment>
-                    </environments>
                 </configuration>
             </plugin>
             <plugin>
@@ -637,12 +918,55 @@
             <plugins>
                 <plugin>
                     <groupId>org.eclipse.tycho</groupId>
+                    <artifactId>target-platform-configuration</artifactId>
+                    <version>${tycho-version}</version>
+                    <configuration>
+                        <environments>
+                            <environment>
+                                <os>win32</os>
+                                <ws>win32</ws>
+                                <arch>x86</arch>
+                            </environment>
+                            <environment>
+                                <os>linux</os>
+                                <ws>gtk</ws>
+                                <arch>x86</arch>
+                            </environment>
+                        </environments>
+                        <target>
+                            <artifact>
+                                <groupId>org.eclipse.kura</groupId>
+                                <artifactId>target-definition</artifactId>
+                                <version>6.0.0-SNAPSHOT</version>
+                            </artifact>
+                        </target>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.eclipse.tycho</groupId>
                     <artifactId>tycho-packaging-plugin</artifactId>
                     <version>${tycho-version}</version>
                     <configuration>
                         <strictVersions>true</strictVersions>
                         <format>${kura.build.version}</format>
+                        <skipPomGeneration>true</skipPomGeneration>
+                        <deriveHeaderFromSource>false</deriveHeaderFromSource>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>biz.aQute.bnd</groupId>
+                    <artifactId>bnd-maven-plugin</artifactId>
+                    <version>${bnd.version}</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>bnd-process</goal>
+                            </goals>
+                            <configuration>
+                                <packagingTypes>eclipse-plugin,eclipse-test-plugin</packagingTypes>
+                            </configuration>
+                        </execution>
+                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>biz.aQute.bnd</groupId>
@@ -680,6 +1004,21 @@
                         </execution>
                     </executions>
                 </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>${maven-clean-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.eclipse.tycho</groupId>
+                    <artifactId>tycho-surefire-plugin</artifactId>
+                    <version>${tycho-version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven-surefire-plugin.version}</version>
+                </plugin>
 
                 <!-- This plugin's configuration is used to store Eclipse m2e settings only. It has
                 no influence on the Maven build itself. -->
@@ -692,19 +1031,24 @@
                             <pluginExecutions>
                                 <pluginExecution>
                                     <pluginExecutionFilter>
-                                        <groupId>
-                                            org.jacoco
-                                        </groupId>
-                                        <artifactId>
-                                            jacoco-maven-plugin
-                                        </artifactId>
-                                        <versionRange>
-                                            [0.6.4.201312101107,)
-                                        </versionRange>
+                                        <groupId>biz.aQute.bnd</groupId>
+                                        <artifactId>bnd-maven-plugin</artifactId>
+                                        <versionRange>[0.0.0,)</versionRange>
                                         <goals>
-                                            <goal>
-                                                prepare-agent
-                                            </goal>
+                                            <goal>bnd-process</goal>
+                                        </goals>
+                                    </pluginExecutionFilter>
+                                    <action>
+                                        <ignore />
+                                    </action>
+                                </pluginExecution>
+                                <pluginExecution>
+                                    <pluginExecutionFilter>
+                                        <groupId>org.jacoco</groupId>
+                                        <artifactId>jacoco-maven-plugin</artifactId>
+                                        <versionRange>[0.6.4.201312101107,)</versionRange>
+                                        <goals>
+                                            <goal>prepare-agent</goal>
                                         </goals>
                                     </pluginExecutionFilter>
                                     <action>
@@ -713,19 +1057,11 @@
                                 </pluginExecution>
                                 <pluginExecution>
                                     <pluginExecutionFilter>
-                                        <groupId>
-                                            org.apache.maven.plugins
-                                        </groupId>
-                                        <artifactId>
-                                            maven-dependency-plugin
-                                        </artifactId>
-                                        <versionRange>
-                                            [2.1,)
-                                        </versionRange>
+                                        <groupId>org.apache.maven.plugins</groupId>
+                                        <artifactId>maven-dependency-plugin</artifactId>
+                                        <versionRange>[2.1,)</versionRange>
                                         <goals>
-                                            <goal>
-                                                copy-dependencies
-                                            </goal>
+                                            <goal>copy-dependencies</goal>
                                         </goals>
                                     </pluginExecutionFilter>
                                     <action>
@@ -734,34 +1070,22 @@
                                 </pluginExecution>
                                 <pluginExecution>
                                     <pluginExecutionFilter>
-                                        <groupId>
-                                            org.apache.maven.plugins
-                                        </groupId>
-                                        <artifactId>
-                                            maven-antrun-plugin
-                                        </artifactId>
-                                        <versionRange>
-                                            [1.7,)
-                                        </versionRange>
+                                        <groupId>org.apache.maven.plugins</groupId>
+                                        <artifactId>maven-antrun-plugin</artifactId>
+                                        <versionRange>[1.7,)</versionRange>
                                         <goals>
                                             <goal>run</goal>
                                         </goals>
                                     </pluginExecutionFilter>
                                     <action>
-                                        <ignore></ignore>
+                                        <ignore />
                                     </action>
                                 </pluginExecution>
                                 <pluginExecution>
                                     <pluginExecutionFilter>
-                                        <groupId>
-                                            org.codehaus.mojo
-                                        </groupId>
-                                        <artifactId>
-                                            build-helper-maven-plugin
-                                        </artifactId>
-                                        <versionRange>
-                                            [1.9,)
-                                        </versionRange>
+                                        <groupId>org.codehaus.mojo</groupId>
+                                        <artifactId>build-helper-maven-plugin</artifactId>
+                                        <versionRange>[1.9,)</versionRange>
                                         <goals>
                                             <goal>regex-property</goal>
                                         </goals>
@@ -772,15 +1096,9 @@
                                 </pluginExecution>
                                 <pluginExecution>
                                     <pluginExecutionFilter>
-                                        <groupId>
-                                            org.apache.maven.plugins
-                                        </groupId>
-                                        <artifactId>
-                                            maven-checkstyle-plugin
-                                        </artifactId>
-                                        <versionRange>
-                                            [2.14,)
-                                        </versionRange>
+                                        <groupId>org.apache.maven.plugins</groupId>
+                                        <artifactId>maven-checkstyle-plugin</artifactId>
+                                        <versionRange>[2.14,)</versionRange>
                                         <goals>
                                             <goal>check</goal>
                                         </goals>
@@ -791,15 +1109,9 @@
                                 </pluginExecution>
                                 <pluginExecution>
                                     <pluginExecutionFilter>
-                                        <groupId>
-                                            org.codehaus.mojo
-                                        </groupId>
-                                        <artifactId>
-                                            exec-maven-plugin
-                                        </artifactId>
-                                        <versionRange>
-                                            [1.2,)
-                                        </versionRange>
+                                        <groupId>org.codehaus.mojo</groupId>
+                                        <artifactId>exec-maven-plugin</artifactId>
+                                        <versionRange>[1.2,)</versionRange>
                                         <goals>
                                             <goal>exec</goal>
                                         </goals>
@@ -812,7 +1124,7 @@
                                     <pluginExecutionFilter>
                                         <groupId>org.codehaus.mojo</groupId>
                                         <artifactId>properties-maven-plugin</artifactId>
-                                        <versionRange>[1.0-alpha-1,)</versionRange>
+                                        <versionRange>[1.2.1,)</versionRange>
                                         <goals>
                                             <goal>read-project-properties</goal>
                                         </goals>

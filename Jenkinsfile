@@ -1,7 +1,22 @@
+import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
+
+def boolean onlyDocumentationFilesChangedIn(String workDirectory) {
+    if (!env.CHANGE_TARGET) {
+        echo "CHANGE_TARGET not set. Skipping check"
+        return false
+    }
+
+    def changedFiles = sh(script: "cd ${workDirectory} && git diff --name-only origin/${env.CHANGE_TARGET} origin/${env.BRANCH_NAME}", returnStdout: true).trim().split("\n")
+
+    echo "Changed files: ${changedFiles}" // Debug
+
+    return changedFiles && changedFiles.every { it.endsWith(".md") || it.endsWith(".txt") }
+}
+
 node {
     properties([
         disableConcurrentBuilds(abortPrevious: true),
-        buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '10')),
+        buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '1', daysToKeepStr: '', numToKeepStr: '3')),
         gitLabConnection('gitlab.eclipse.org'),
         [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],
         [$class: 'JobLocalConfiguration', changeReasonComment: '']
@@ -12,56 +27,103 @@ node {
     stage('Preparation') {
         dir("kura") {
             checkout scm
+            sh "touch /tmp/isJenkins.txt"
         }
     }
 
-    stage('Build') {
+    // Skip build if only documentation files (i.e. *.md and *.txt) have changed
+    if (onlyDocumentationFilesChangedIn("kura")) {
+        echo "Skipping build for documentation changes"
+        currentBuild.result = 'SUCCESS'
+        return
+    }
+
+    stage('Build target-platform') {
+        timeout(time: 1, unit: 'HOURS') {
+            dir("kura") {
+                withMaven(jdk: 'temurin-jdk21-latest', maven: 'apache-maven-3.9.9', options: [artifactsPublisher(disabled: true)]) {
+                    sh "mvn -f target-platform/pom.xml clean install -Pno-mirror -Pcheck-exists-plugin"
+                }
+            }
+        }
+    }
+
+    stage('Build core') {
         timeout(time: 2, unit: 'HOURS') {
             dir("kura") {
-                withMaven(jdk: 'adoptopenjdk-hotspot-jdk8-latest', maven: 'apache-maven-3.6.3') {
-                    sh "touch /tmp/isJenkins.txt"
-                    sh "mvn -f target-platform/pom.xml clean install -Pno-mirror -Pcheck-exists-plugin"
-                    sh "mvn -f kura/pom.xml clean install -Pcheck-exists-plugin"
-                    sh "mvn -f kura/distrib/pom.xml clean install -DbuildAll"
-                    sh "mvn -f kura/examples/pom.xml clean install -Pcheck-exists-plugin"
+                withMaven(jdk: 'temurin-jdk21-latest', maven: 'apache-maven-3.9.9', options: [artifactsPublisher(disabled: true)]) {
+                    sh "mvn -f kura/pom.xml -Dsurefire.rerunFailingTestsCount=3 clean install -Pcheck-exists-plugin"
                 }
+            }
+        }
+    }
+
+    stage('Build distrib') {
+        timeout(time: 1, unit: 'HOURS') {
+            dir("kura") {
+                withMaven(jdk: 'temurin-jdk21-latest', maven: 'apache-maven-3.9.9', options: [artifactsPublisher(disabled: true)]) {
+                    sh "mvn -f kura/distrib/pom.xml clean install"
+        }
             }
         }
     }
 
     stage('Generate test reports') {
         dir("kura") {
-            junit 'kura/test/*/target/surefire-reports/*.xml,kura/examples/test/*/target/surefire-reports/*.xml'
+            junit 'kura/test/*/target/surefire-reports/*.xml'
+        }
+    }
+
+    stage ("Deploy on Nexus") {
+        // Call uploadPackages only if we are on the default branch,
+        // if we have DEB packages to upload and if the user has set the pushArtifacts parameter to true
+        if (env.BRANCH_IS_PRIMARY) {
+            echo "Uploading DEB packages..."
+
+            def distribPom = readMavenPom file: 'kura/kura/distrib/pom.xml'
+
+            def repoDistribution = distribPom.properties['kura.repo.distribution']
+            def repoModule = distribPom.properties['kura.repo.module']
+
+            def nexusUtils = load 'kura/.jenkins/nexusUtils.groovy'
+            nexusUtils.uploadPackages(repoDistribution, repoModule)
+        } else {
+            echo "Skipping DEB upload"
+            Utils.markStageSkippedForConditional(STAGE_NAME)
         }
     }
 
     stage('Archive .deb artifacts') {
         dir("kura") {
-            archiveArtifacts artifacts: 'kura/distrib/target/*.deb', onlyIfSuccessful: true
+            archiveArtifacts artifacts: 'kura/distrib/**/target/*.deb', onlyIfSuccessful: true
         }
     }
 
     stage('Sonar') {
         timeout(time: 2, unit: 'HOURS') {
             dir("kura") {
-                withMaven(jdk: 'temurin-jdk17-latest', maven: 'apache-maven-3.6.3') {
-                    withCredentials([string(credentialsId: 'sonarcloud-token', variable: 'SONARCLOUD_TOKEN')]) {
-                        withSonarQubeEnv {
-                            sh '''
-                                mvn -f kura/pom.xml sonar:sonar \
-                                    -Dmaven.test.failure.ignore=true \
-                                    -Dsonar.organization=eclipse \
-                                    -Dsonar.host.url=${SONAR_HOST_URL} \
-                                    -Dsonar.token=${SONARCLOUD_TOKEN} \
-                                    -Dsonar.branch.name=${BRANCH_NAME} \
-                                    -Dsonar.branch.target=${CHANGE_TARGET} \
-                                    -Dsonar.java.source=8 \
-                                    -Dsonar.java.binaries='target/' \
-                                    -Dsonar.core.codeCoveragePlugin=jacoco \
-                                    -Dsonar.projectKey=org.eclipse.kura:kura \
-                                    -Dsonar.exclusions=test/**/*.java,test-util/**/*.java,org.eclipse.kura.web2/**/*.java,org.eclipse.kura.nm/src/main/java/org/freedesktop/**/*,org.eclipse.kura.nm/src/main/java/fi/w1/**/*
-                            '''
+                withMaven(jdk: 'temurin-jdk21-latest', maven: 'apache-maven-3.9.9', options: [artifactsPublisher(disabled: true)]) {
+                    withSonarQubeEnv(credentialsId: 'sonarcloud-token') {
+                        // Check if on primary branch
+                        def analysisParameters = ""
+                        if (env.CHANGE_ID) {
+                            analysisParameters = "-Dsonar.pullrequest.branch=${env.CHANGE_BRANCH} -Dsonar.pullrequest.base=${env.CHANGE_TARGET} -Dsonar.pullrequest.key=${env.CHANGE_ID}"
+                        } else {
+                            analysisParameters = "-Dsonar.branch.name=${env.BRANCH_NAME}"
                         }
+
+                        sh """
+                            mvn -f kura/pom.xml org.sonarsource.scanner.maven:sonar-maven-plugin:5.6.0.6792:sonar \
+                                -Dmaven.test.failure.ignore=true \
+                                -Dsonar.organization=eclipse \
+                                -Dsonar.host.url=${SONAR_HOST_URL} \
+                                -Dsonar.java.binaries='target/' \
+                                ${analysisParameters} \
+                                -Dsonar.core.codeCoveragePlugin=jacoco \
+                                -Dsonar.projectKey=org.eclipse.kura:kura \
+                                -Dsonar.exclusions=test/**/*,**/*.xml,**/*.yml,test-util/**/* \
+                                -Dsonar.test.exclusions=**/*
+                        """
                     }
                 }
             }

@@ -1,24 +1,26 @@
 /*******************************************************************************
- * Copyright (c) 2011, 2020 Eurotech and/or its affiliates and others
- * 
+ * Copyright (c) 2011, 2025 Eurotech and/or its affiliates and others
+ *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
  * which is available at https://www.eclipse.org/legal/epl-2.0/
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0
- * 
+ *
  * Contributors:
  *  Eurotech
- *******************************************************************************/
+ ******************************************************************************/
 package org.eclipse.kura.core.status;
 
 import java.io.File;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.eclipse.kura.core.status.GpioLedManager.GpioIdentifier;
 import org.eclipse.kura.core.status.runnables.BlinkStatusRunnable;
 import org.eclipse.kura.core.status.runnables.HeartbeatStatusRunnable;
 import org.eclipse.kura.core.status.runnables.LogStatusRunnable;
@@ -40,7 +42,7 @@ public class CloudConnectionStatusServiceImpl implements CloudConnectionStatusSe
     private static final Logger logger = LoggerFactory.getLogger(CloudConnectionStatusServiceImpl.class);
 
     private SystemService systemService;
-    private GPIOService gpioService;
+    private Optional<GPIOService> gpioService = Optional.empty();
 
     private final ExecutorService notificationExecutor;
     private Future<?> notificationWorker;
@@ -75,11 +77,11 @@ public class CloudConnectionStatusServiceImpl implements CloudConnectionStatusSe
     }
 
     public void setGPIOService(GPIOService gpioService) {
-        this.gpioService = gpioService;
+        this.gpioService = Optional.of(gpioService);
     }
 
     public void unsetGPIOService(GPIOService gpioService) {
-        this.gpioService = null;
+        this.gpioService = Optional.empty();
     }
 
     // ----------------------------------------------------------------
@@ -175,15 +177,21 @@ public class CloudConnectionStatusServiceImpl implements CloudConnectionStatusSe
     private StatusRunnable getRunnable(CloudConnectionStatusEnum status) {
         StatusRunnable runnable = null;
 
-        StatusNotificationTypeEnum notificationType = (StatusNotificationTypeEnum) this.properties
-                .get(CloudConnectionStatusURL.NOTIFICATION_TYPE);
+        StatusNotificationTypeEnum notificationType = Optional
+                .ofNullable(this.properties.get(CloudConnectionStatusURL.NOTIFICATION_TYPE))
+                .filter(StatusNotificationTypeEnum.class::isInstance).map(StatusNotificationTypeEnum.class::cast)
+                .orElseGet(() -> {
+                    logger.warn("Invalid {} property, disabiling cloud connection status notifications",
+                            STATUS_NOTIFICATION_URL);
+                    return StatusNotificationTypeEnum.NONE;
+                });
 
         switch (notificationType) {
         case LED:
-            if (this.properties.get("linux_led") != null) {
+            if (this.properties.get("linux_led") instanceof String) {
                 runnable = getLinuxStatusWorker(status);
             }
-            if (runnable == null && this.properties.get("led") != null) {
+            if (runnable == null && this.properties.get("led") instanceof GpioIdentifier) {
                 runnable = getGpioStatusWorker(status);
             }
             if (runnable == null) {
@@ -230,9 +238,21 @@ public class CloudConnectionStatusServiceImpl implements CloudConnectionStatusSe
     }
 
     private StatusRunnable getGpioStatusWorker(CloudConnectionStatusEnum status) {
-        int gpioLed = (Integer) this.properties.get("led");
-        boolean inverted = (Boolean) this.properties.get("inverted");
-        LedManager gpioLedManager = new GpioLedManager(this.gpioService, gpioLed, inverted);
+        if (!this.gpioService.isPresent()) {
+            return null;
+        }
+
+        final Object rawIdentifier = this.properties.get("led");
+        final GpioIdentifier identifier;
+
+        if (rawIdentifier instanceof GpioIdentifier) {
+            identifier = (GpioIdentifier) rawIdentifier;
+        } else {
+            throw new IllegalStateException("invaild gpio identifier: " + rawIdentifier);
+        }
+
+        final boolean inverted = Boolean.TRUE.equals(this.properties.get("inverted"));
+        LedManager gpioLedManager = new GpioLedManager(this.gpioService.get(), identifier, inverted);
 
         return createLedRunnable(status, gpioLedManager);
     }

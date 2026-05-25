@@ -11,7 +11,9 @@ The fixes are applied to the latest minor release available for the given major 
 
 | Version | Last Release | Supported          | 
 | ------- | ------------ | ------------------ | 
-| 5.4.x   | 2023-11-30   | :white_check_mark: |
+| 5.6.x   | 2025-12-09   | :white_check_mark: |
+| 5.5.x   | 2024-07-08   | :x:                |
+| 5.4.x   | 2023-11-30   | :x:                |
 | 5.3.x   | 2023-07-07   | :x:                |
 | 5.2.x   | 2023-05-12   | :x:                |
 | 5.1.x   | 2022-06-30   | :x:                | 
@@ -21,5 +23,9 @@ The fixes are applied to the latest minor release available for the given major 
 
 ## Reporting a Vulnerability
 
-Please report vulnerabilities to the Eclipse Foundation Security Team at
-security@eclipse.org
+If you think you have found a vulnerability in Eclipse Kura you can report it using one of the following ways:
+
+* [Report a Vulnerability](https://github.com/eclipse-kura/kura/security/advisories/new)
+* Contact the [Eclipse Foundation Security Team](mailto:security@eclipse-foundation.org)
+
+You can find more information about reporting and disclosure at the [Eclipse Foundation Security page](https://www.eclipse.org/security/).

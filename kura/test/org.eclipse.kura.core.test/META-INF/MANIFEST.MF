@@ -2,27 +2,28 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: org.eclipse.kura.core.test
 Bundle-SymbolicName: org.eclipse.kura.core.test;singleton:=true
-Bundle-Version: 5.5.0.qualifier
+Bundle-Version: 6.0.0.qualifier
 Bundle-Vendor: Eclipse Kura
-Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"
+Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=21))"
 Import-Package: javax.comm,
  javax.xml.parsers,
  javax.xml.stream,
  junit.framework,
  org.eclipse.kura.cloud;version="[1.0,2.0)",
+ org.eclipse.kura.cloudconnection;version="[1.0,2.0]",
+ org.eclipse.kura.cloudconnection.message;version="[1.0,2.0]",
  org.eclipse.kura.comm;version="[1.0,2.0)",
  org.eclipse.kura.core.configuration;version="[2.0,3.0)",
  org.eclipse.kura.core.configuration.metatype;version="[1.0,2.0)",
  org.eclipse.kura.core.configuration.util;version="[2.0,3.0)",
- org.eclipse.kura.core.deployment;version="[1.0,2.0)",
- org.eclipse.kura.core.deployment.download;version="[1.0,2.0)",
- org.eclipse.kura.core.deployment.install;version="[1.0,2.0)",
  org.eclipse.kura.core.inventory;version="[1.0,2.0)",
  org.eclipse.kura.core.inventory.resources;version="[1.0,2.0)",
  org.eclipse.kura.core.testutil;version="1.0.0",
  org.eclipse.kura.core.testutil.event;version="[1.0,2.0)",
  org.eclipse.kura.core.testutil.http;version="[1.0,2.0)",
  org.eclipse.kura.core.testutil.pki;version="[1.0,2.0)",
+ org.eclipse.kura.data;version="[1.1,2.0)",
+ org.eclipse.kura.data.listener;version="[1.0,2.0]",
  org.eclipse.kura.executor;version="[1.0,2.0)",
  org.eclipse.kura.marshalling;version="1.0.0",
  org.eclipse.kura.message;version="[1.0,2.0)",
@@ -34,9 +35,9 @@ Import-Package: javax.comm,
  org.h2.jdbcx;version="2.1.210",
  org.h2.tools;version="2.1.210",
  org.junit,
- org.mockito;version="[4.0.0,5.0.0)",
- org.mockito.invocation;version="[4.0.0,5.0.0)",
- org.mockito.stubbing;version="[4.0.0,5.0.0)",
+ org.mockito;version="5.0.0",
+ org.mockito.invocation;version="5.0.0",
+ org.mockito.stubbing;version="5.0.0",
  org.mockito.verification;version="4.8.1",
  org.osgi.framework,
  org.osgi.service.cm,
@@ -50,10 +51,9 @@ Import-Package: javax.comm,
 Fragment-Host: org.eclipse.kura.core
 Bundle-ActivationPolicy: lazy
 Comment: org.eclipse.kura.emulator is needed as we need to start-up the emulator to run the tests!!
-Require-Bundle: org.eclipse.equinox.io;bundle-version="1.0.400",
- org.junit;bundle-version="4.10.0",
- org.eclipse.kura.test;bundle-version="[5.0,6.0)",
- org.eclipse.kura.emulator;bundle-version="[0.7.1,2.0.0)",
- moquette-broker,
- org.eclipse.kura.broker.artemis.xml;bundle-version="1.1.0"
+Require-Bundle: org.eclipse.equinox.io,
+ org.junit,
+ org.eclipse.kura.test,
+ org.eclipse.kura.emulator,
+ moquette-broker
 Comment2: require moquette-broker. See https://bugs.eclipse.org/bugs/show_bug.cgi?id=485926
