@@ -26,6 +26,7 @@
     </parent>
 
     <artifactId>${package}.test</artifactId>
+    <packaging>jar</packaging>
     <description>Tests of ${package}</description>
 
     <!-- Insert your bundles as dependencies -->
