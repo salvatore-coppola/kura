@@ -25,6 +25,7 @@
     </parent>
 
     <artifactId>${package}</artifactId>
+    <packaging>jar</packaging>
     <description>${package} plugin</description>
 
     <properties>
