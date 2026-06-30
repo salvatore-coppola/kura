@@ -38,6 +38,13 @@ import org.slf4j.LoggerFactory;
 import Moka7.S7;
 import Moka7.S7Client;
 
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Modified;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.metatype.annotations.Designate;
 /**
  * The Kura S7PlcDriver is a S7 PLC Driver implementation for Kura Asset-Driver
  * Topology.<br/>
@@ -55,6 +62,11 @@ import Moka7.S7Client;
  * @see S7PlcChannelDescriptor
  * @see S7PlcOptions
  */
+@Component(
+    name = "org.eclipse.kura.driver.s7plc",
+    configurationPolicy = ConfigurationPolicy.REQUIRE,
+    service = { org.eclipse.kura.driver.Driver.class, org.eclipse.kura.configuration.ConfigurableComponent.class })
+@Designate(ocd = S7PlcMetatype.class, factory = true)
 public class S7PlcDriver extends AbstractBlockDriver<S7PlcDomain> implements ConfigurableComponent {
 
     private static final Logger logger = LoggerFactory.getLogger(S7PlcDriver.class);
@@ -64,20 +76,23 @@ public class S7PlcDriver extends AbstractBlockDriver<S7PlcDomain> implements Con
 
     private CryptoService cryptoService;
 
+    @Reference(name = "CryptoService", service = org.eclipse.kura.crypto.CryptoService.class, unbind = "unsetCryptoService")
     public void setCryptoService(CryptoService cryptoService) {
         this.cryptoService = cryptoService;
     }
 
-    public void unsetCryptoService() {
+    public void unsetCryptoService(CryptoService cryptoService) {
         this.cryptoService = null;
     }
 
+    @Activate
     public void activate(final Map<String, Object> properties) {
         logger.debug("Activating S7 PLC Driver...");
         updated(properties);
         logger.debug("Activating S7 PLC Driver... Done");
     }
 
+    @Deactivate
     public synchronized void deactivate() {
         logger.debug("Deactivating S7 PLC Driver...");
         try {
@@ -88,6 +103,7 @@ public class S7PlcDriver extends AbstractBlockDriver<S7PlcDomain> implements Con
         logger.debug("Deactivating S7 PLC Driver.....Done");
     }
 
+    @Modified
     public void updated(final Map<String, Object> properties) {
         logger.debug("Updating S7 PLC Driver...");
         this.options.set(new S7PlcOptions(properties));

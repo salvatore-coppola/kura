@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2021, 2022 Eurotech and/or its affiliates and others
+ * Copyright (c) 2021, 2026 Eurotech and/or its affiliates and others
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -29,6 +29,18 @@ import org.eclipse.kura.log.listener.LogListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Modified;
+import org.osgi.service.metatype.annotations.Designate;
+@Component(
+    name = "org.eclipse.kura.log.filesystem.provider.FilesystemLogProvider",
+    immediate = true,
+    configurationPolicy = ConfigurationPolicy.REQUIRE,
+    service = { org.eclipse.kura.log.LogProvider.class })
+@Designate(ocd = FilesystemLogProviderOptions.class, factory = true)
 public class FilesystemLogProvider implements ConfigurableComponent, LogProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(FilesystemLogProvider.class);
@@ -38,12 +50,14 @@ public class FilesystemLogProvider implements ConfigurableComponent, LogProvider
     private FileLogReader readerThread;
     private String filePath;
 
+    @Activate
     protected void activate(Map<String, Object> properties) {
         logger.info("Activating FilesystemLogProvider...");
         updated(properties);
         logger.info("Activating FilesystemLogProvider... Done.");
     }
 
+    @Deactivate
     protected void deactivate() {
         logger.info("Deactivating FilesystemLogProvider...");
         if (this.readerThread != null) {
@@ -52,13 +66,21 @@ public class FilesystemLogProvider implements ConfigurableComponent, LogProvider
         logger.info("Deactivating FilesystemLogProvider... Done.");
     }
 
+    @Modified
     public void updated(Map<String, Object> properties) {
         logger.info("Updated FilesystemLogProvider...");
+        String newFilePath = (String) properties.get(LOG_FILEPATH_PROP_KEY);
+        long startPosition = 0;
         if (this.readerThread != null) {
+            // When the log file is unchanged, keep tailing from the last read position instead of
+            // replaying the whole file to the listeners on every configuration update.
+            if (newFilePath != null && newFilePath.equals(this.filePath)) {
+                startPosition = this.readerThread.getPosition();
+            }
             this.readerThread.interrupt();
         }
-        this.filePath = (String) properties.get(LOG_FILEPATH_PROP_KEY);
-        this.readerThread = new FileLogReader(this.filePath);
+        this.filePath = newFilePath;
+        this.readerThread = new FileLogReader(this.filePath, startPosition);
         this.readerThread.start();
         logger.info("Updated FilesystemLogProvider... Done.");
     }
@@ -73,32 +95,55 @@ public class FilesystemLogProvider implements ConfigurableComponent, LogProvider
         this.registeredListeners.remove(listener);
     }
 
-    class FileLogReader extends Thread {
+    class FileLogReader implements Runnable {
 
         private static final long SAMPLE_INTERVAL = 100;
         private final File logFile;
-        private boolean follow = true;
+        private final long startPosition;
+        private volatile long position;
+        private volatile boolean follow = true;
+        private Thread thread;
 
-        public FileLogReader(String filePath) {
+        public FileLogReader(String filePath, long startPosition) {
             this.logFile = new File(filePath);
+            this.startPosition = startPosition;
+            this.position = startPosition;
             this.follow = true;
+        }
+
+        // Tailing a log file is a long-lived, mostly-idle blocking task: run it on a virtual
+        // thread rather than tying up a platform thread.
+        void start() {
+            this.thread = Thread.ofVirtual().name("FilesystemLogProvider-FileLogReader").start(this);
+        }
+
+        void interrupt() {
+            this.follow = false;
+            if (this.thread != null) {
+                this.thread.interrupt();
+            }
+        }
+
+        long getPosition() {
+            return this.position;
         }
 
         @Override
         public void run() {
             try (RandomAccessFile file = new RandomAccessFile(this.logFile, "r")) {
+                file.seek(Math.min(this.startPosition, file.length()));
+                this.position = file.getFilePointer();
                 while (this.follow) {
                     readLinesAndNotifyListeners(file);
-                    sleep(SAMPLE_INTERVAL);
+                    this.position = file.getFilePointer();
+                    Thread.sleep(SAMPLE_INTERVAL);
                 }
             } catch (FileNotFoundException fnf) {
                 logger.error("File '{}' not found.", this.logFile.getPath());
             } catch (InterruptedException ie) {
-                // nothing to do
+                Thread.currentThread().interrupt();
             } catch (Exception e) {
                 logger.error("Unexpected exception in FilesystemLogProvider.", e);
-            } finally {
-                Thread.currentThread().interrupt();
             }
         }
 

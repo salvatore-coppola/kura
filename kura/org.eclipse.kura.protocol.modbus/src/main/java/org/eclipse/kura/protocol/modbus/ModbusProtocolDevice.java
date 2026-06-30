@@ -1,12 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2011, 2020 Eurotech and/or its affiliates and others
- * 
+ * Copyright (c) 2011, 2026 Eurotech and/or its affiliates and others
+ *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
  * which is available at https://www.eclipse.org/legal/epl-2.0/
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0
- * 
+ *
  * Contributors:
  *  Eurotech
  *  Red Hat Inc
@@ -33,6 +33,10 @@ import org.osgi.service.io.ConnectionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
 /**
  * The Modbus protocol implements a subset of the Modbus standard command set.
  * It also provides for the extension of some data typing to allow register
@@ -41,6 +45,10 @@ import org.slf4j.LoggerFactory;
  * The protocol supports RTU and ASCII mode operation.
  *
  */
+@Component(
+    name = "org.eclipse.kura.protocol.modbus.ModbusProtocolDevice",
+    service = { org.eclipse.kura.protocol.modbus.ModbusProtocolDeviceService.class },
+    property = { "service.pid=org.eclipse.kura.protocol.modbus.ModbusProtocolDeviceService" })
 public class ModbusProtocolDevice implements ModbusProtocolDeviceService {
 
     private static final Logger logger = LoggerFactory.getLogger(ModbusProtocolDevice.class);
@@ -61,6 +69,7 @@ public class ModbusProtocolDevice implements ModbusProtocolDeviceService {
     private Properties modbusProperties = null;
     private static int transactionIndex = 0;
 
+    @Reference(name = "ConnectionFactory", service = org.osgi.service.io.ConnectionFactory.class, unbind = "unsetConnectionFactory")
     public void setConnectionFactory(ConnectionFactory connectionFactory) {
         this.connectionFactory = connectionFactory;
     }
@@ -69,6 +78,7 @@ public class ModbusProtocolDevice implements ModbusProtocolDeviceService {
         this.connectionFactory = null;
     }
 
+    @Reference(name = "UsbService", service = org.eclipse.kura.usb.UsbService.class, unbind = "unsetUsbService")
     public void setUsbService(UsbService usbService) {
         this.usbService = usbService;
     }
@@ -111,10 +121,12 @@ public class ModbusProtocolDevice implements ModbusProtocolDeviceService {
     // Activation APIs
     //
     // ----------------------------------------------------------------
+    @Activate
     protected void activate(ComponentContext componentContext) {
         logger.info("activate...");
     }
 
+    @Deactivate
     protected void deactivate(ComponentContext componentContext) {
         logger.info("deactivate...");
         try {

@@ -1,16 +1,15 @@
 /*******************************************************************************
- * Copyright (c) 2016, 2020 Red Hat Inc and others
- * 
+ * Copyright (c) 2016, 2026 Red Hat Inc and/or its affiliates and others
+ *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
  * which is available at https://www.eclipse.org/legal/epl-2.0/
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0
- * 
+ *
  * Contributors:
  *  Red Hat Inc
- *  Eurotech
- *******************************************************************************/
+ ******************************************************************************/
 package org.eclipse.kura.camel.cloud;
 
 import org.apache.camel.CamelContext;
@@ -20,6 +19,7 @@ import org.eclipse.kura.cloud.CloudService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.osgi.service.component.annotations.Reference;
 /**
  * A resolver for "kura-cloud"
  * <p>
@@ -30,12 +30,17 @@ import org.slf4j.LoggerFactory;
  * If you need finer grained control, consider using the {@link org.eclipse.kura.camel.runner.CamelRunner} mechanism.
  * </p>
  */
+@org.osgi.service.component.annotations.Component(
+    name = "org.eclipse.kura.camel.KuraCloudComponentResolver",
+    service = { org.apache.camel.spi.ComponentResolver.class },
+    properties = "OSGI-INF/kuraCloudResolver.properties")
 public class KuraCloudComponentResolver implements ComponentResolver {
 
     private static final Logger logger = LoggerFactory.getLogger(KuraCloudComponentResolver.class);
 
     private CloudService cloudService;
 
+    @Reference(name = "CloudService", service = org.eclipse.kura.cloud.CloudService.class, unbind = "-")
     public void setCloudService(final CloudService cloudService) {
         this.cloudService = cloudService;
     }

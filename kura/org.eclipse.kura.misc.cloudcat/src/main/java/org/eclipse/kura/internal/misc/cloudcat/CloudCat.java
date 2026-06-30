@@ -1,12 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2020 Eurotech and/or its affiliates and others
- * 
+ * Copyright (c) 2017, 2026 Eurotech and/or its affiliates and others
+ *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
  * which is available at https://www.eclipse.org/legal/epl-2.0/
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0
- * 
+ *
  * Contributors:
  *  Eurotech
  *******************************************************************************/
@@ -29,6 +29,17 @@ import org.osgi.util.tracker.ServiceTrackerCustomizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Modified;
+import org.osgi.service.metatype.annotations.Designate;
+@Component(
+    name = "org.eclipse.kura.misc.cloudcat.CloudCat",
+    configurationPolicy = ConfigurationPolicy.REQUIRE,
+    service = { org.eclipse.kura.configuration.ConfigurableComponent.class })
+@Designate(ocd = CloudCatMetatype.class, factory = true)
 public class CloudCat implements ConfigurableComponent {
 
     private static final Logger logger = LoggerFactory.getLogger(CloudCat.class);
@@ -78,18 +89,21 @@ public class CloudCat implements ConfigurableComponent {
         this.secondCloudService = null;
     }
 
+    @Activate
     protected void activate(ComponentContext ctx, Map<String, Object> properties) {
         logger.info("Activating {}", ctx.getProperties().get(KURA_SERVICE_PID));
         this.componentContext = ctx;
         init(properties);
     }
 
+    @Modified
     protected void updated(ComponentContext ctx, Map<String, Object> properties) {
         logger.info("Updating {}", ctx.getProperties().get(KURA_SERVICE_PID));
         cleanup();
         init(properties);
     }
 
+    @Deactivate
     protected void deactivate(ComponentContext ctx) {
         logger.info("Deactivating {}", ctx.getProperties().get(KURA_SERVICE_PID));
         cleanup();
