@@ -1,9 +1,9 @@
 # Eclipse Kura Agent Guide
 
 ## Build Commands
-- **Full Build**: `mvn -f target-platform/pom.xml clean install && mvn -f kura/pom.xml clean install && mvn -f kura/distrib/pom.xml clean install -DbuildAll`
-- **Skip Tests**: Add `-Dmaven.test.skip=true` to any build command
-- **Run Single Test**: `mvn -f kura/test/<test-module>/pom.xml test` (e.g., `mvn -f kura/test/org.eclipse.kura.log.filesystem.provider.test/pom.xml test`)
+- **Full Build**: `mvn clean install` from the repository root (single reactor: `bom`, `kura`, `distrib`, and `test` via the `tests` profile)
+- **Skip Tests**: Add `-DskipTests` to any build command (also excludes the integration-test module from the reactor)
+- **Run Single Test**: `mvn -f test/<test-module>/pom.xml test` (e.g., `mvn -f test/org.eclipse.kura.log.filesystem.provider.test/pom.xml test`)
 - **Checkstyle**: Runs automatically during `process-sources` phase with config in `checkstyle_checks.xml`
 
 ## Code Style
