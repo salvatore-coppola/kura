@@ -1,0 +1,6 @@
+[
+  {"name":"org.apache.logging.slf4j.SLF4JServiceProvider","allDeclaredConstructors":true,"allPublicConstructors":true,"allDeclaredMethods":true,"allPublicMethods":true},
+  {"name":"org.apache.logging.log4j.core.impl.Log4jProvider","allDeclaredConstructors":true,"allPublicConstructors":true,"allDeclaredMethods":true},
+  {"name":"org.eclipse.kura.KuraException","allDeclaredConstructors":true,"allPublicConstructors":true,"allDeclaredMethods":true,"allDeclaredFields":true},
+  {"name":"org.eclipse.kura.KuraErrorCode","allDeclaredFields":true,"allDeclaredMethods":true}
+]

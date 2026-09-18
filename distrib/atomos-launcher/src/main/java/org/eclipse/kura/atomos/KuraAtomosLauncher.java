@@ -40,7 +40,7 @@ import org.osgi.framework.startlevel.FrameworkStartLevel;
 
 public final class KuraAtomosLauncher {
 
-    private static final Pattern PLUGINS_LEVEL = Pattern.compile("/plugins/([0-9]+)(s?)/[^/]+\\.jar");
+    private static final Pattern PLUGINS_LEVEL = Pattern.compile("(?:/plugins/([0-9]+)(s?)/[^/]+\\.jar|(?:^|[/:])([0-9]+)(s?)__[^/]+\\.jar)");
     private static final String DEFAULT_KURA_HOME = "/opt/eclipse/kura";
     private static final String STORAGE = "/tmp/.kura/atomos";
     private static final String DUMP_PROPERTY = "kura.atomos.dump";
@@ -105,6 +105,8 @@ public final class KuraAtomosLauncher {
         config.put(Constants.FRAMEWORK_STORAGE_CLEAN, Constants.FRAMEWORK_STORAGE_CLEAN_ONFIRSTINIT);
         config.put(Atomos.ATOMOS_CONTENT_START, "false");
         config.put(Atomos.ATOMOS_CONTENT_INSTALL, "false");
+        System.getProperties().stringPropertyNames().stream().filter(k -> k.startsWith("atomos."))
+                .forEach(k -> config.put(k, System.getProperty(k)));
         config.putIfAbsent("osgi.bundles.defaultStartLevel", "5");
         config.put(Constants.FRAMEWORK_BEGINNING_STARTLEVEL, "1");
         return config;
@@ -132,8 +134,8 @@ public final class KuraAtomosLauncher {
             int level;
             boolean start;
             if (m.find()) {
-                level = Integer.parseInt(m.group(1));
-                start = !m.group(2).isEmpty();
+                level = Integer.parseInt(m.group(1) != null ? m.group(1) : m.group(3));
+                start = !(m.group(1) != null ? m.group(2) : m.group(4)).isEmpty();
             } else {
                 report.add("no level, starting at 1: " + content.getSymbolicName() + " " + content.getAtomosLocation());
                 level = 1;
@@ -213,7 +215,8 @@ public final class KuraAtomosLauncher {
         org.osgi.framework.BundleContext ctx = framework.getBundleContext();
         Map<String, List<String>> census = new java.util.TreeMap<>();
         try {
-            for (org.osgi.framework.ServiceReference<?> ref : ctx.getAllServiceReferences(null, null)) {
+            org.osgi.framework.ServiceReference<?>[] refs = ctx.getAllServiceReferences(null, null);
+            for (org.osgi.framework.ServiceReference<?> ref : refs == null ? new org.osgi.framework.ServiceReference<?>[0] : refs) {
                 for (String oc : (String[]) ref.getProperty(Constants.OBJECTCLASS)) {
                     if (oc.startsWith("org.eclipse.kura") || oc.startsWith("org.osgi.service")) {
                         census.computeIfAbsent(oc, k -> new ArrayList<>()).add(ref.getBundle().getSymbolicName() + "#"

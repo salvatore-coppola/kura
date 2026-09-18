@@ -4,8 +4,12 @@ set -u
 . /graal/common.sh
 T=${1:-60}; shift 2>/dev/null
 rm -f /var/log/kura.log; mkdir -p /work/out
+rm -rf /work/atomos_lib; mkdir -p /work/atomos_lib
+for j in $(echo "$(build_cp)" | tr ':' ' '); do case "$j" in /atomos/org.eclipse.kura.atomos.launcher*) continue;; /atomos/lib/*|*/org.eclipse.osgi-3.21.0.jar) ln -s "$j" "/work/atomos_lib/$(basename "$j")"; continue;; esac
+  lvl=$(basename "$(dirname "$j")"); ln -s "$j" "/work/atomos_lib/${lvl}__$(basename "$j")"; done
+echo "-- lib jars: $(ls /work/atomos_lib | wc -l)"
 t0=$(awk '{print $1}' /proc/uptime)
-/work/out/kura-native $KURA_PROPS -Dkura.atomos.dump=true -Dkura.atomos.diag=true -Dkura.atomos.dumpAfter=$((T-15)) "$@" > /work/native-run.out 2>&1 &
+/work/out/kura-native -Datomos.lib.dir=/work $KURA_PROPS -Dkura.atomos.dump=true -Dkura.atomos.diag=true -Dkura.atomos.dumpAfter=$((T-15)) "$@" > /work/native-run.out 2>&1 &
 P=$!
 for i in $(seq 1 $((T*5))); do grep -q "has started!" /var/log/kura.log 2>/dev/null && { t=$(awk '{print $1}' /proc/uptime); echo "first 'has started' after $(awk -v a=$t0 -v b=$t 'BEGIN{printf "%.2f", b-a}') s"; break; }; kill -0 $P 2>/dev/null || { echo "process exited early"; break; }; sleep 0.2; done
 sleep 5; echo "-- RSS kB: $(awk '/VmRSS/{print $2}' /proc/$P/status 2>/dev/null)"

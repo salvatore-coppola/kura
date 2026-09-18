@@ -1,0 +1,10 @@
+{
+  "resources": {"includes": [
+    {"pattern": "\\QMETA-INF/services/\\E.*"},
+    {"pattern": "org/eclipse/kura/.*\\.properties"},
+    {"pattern": ".*\\.xsd"}
+  ]},
+  "bundles": [
+    {"name": "org.eclipse.kura.core.messages.KuraExceptionMessagesBundle"}
+  ]
+}
