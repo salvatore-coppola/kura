@@ -1,0 +1,6 @@
+FROM ghcr.io/graalvm/native-image-community:21
+RUN microdnf install -y curl procps-ng iproute findutils tar gzip && microdnf clean all
+RUN mkdir -p /var/log /tmp/.kura /work
+WORKDIR /work
+ENTRYPOINT []
+CMD ["/bin/bash"]

@@ -2,15 +2,16 @@
 # Inside kura-graal: A/B of the minimal profile, JVM (GraalVM JDK 21 in JVM mode) vs native image. usage: bench.sh <runs> <settle_s>
 set -u
 . /graal/common.sh
-RUNS=${1:-3}; SETTLE=${2:-60}; OUT=/work/bench-min.csv
+RUNS=${1:-3}; SETTLE=${2:-60}; OUT=${OUT:-/work/bench-min.csv}; ONLY=${ONLY:-}
 CP=$(build_cp)
 [ -f $OUT ] || echo "label,run,t_first_started,t_quiet,rss60_kb,cpu60_s,threads" > $OUT
 now() { awk '{print $1}' /proc/uptime; }
 el() { awk -v a="$1" -v b="$2" 'BEGIN{printf "%.2f", b-a}'; }
 measure() { # label, command...
   local label=$1; shift
+  [ -n "$ONLY" ] && ! echo "$label" | grep -qE "$ONLY" && return
   for r in $(seq 1 $RUNS); do
-    rm -f /var/log/kura.log; sync; echo 3 > /proc/sys/vm/drop_caches 2>/dev/null; sleep 2
+    rm -f /var/log/kura.log; sync; [ "${COLD:-1}" = 1 ] && echo 3 > /proc/sys/vm/drop_caches 2>/dev/null; sleep 2
     t0=$(now); "$@" > /work/bench-run.out 2>&1 & P=$!
     tf=; tq=; last=0; lastchg=$t0
     while :; do t=$(now); n=$(wc -l < /var/log/kura.log 2>/dev/null || echo 0)
@@ -21,7 +22,7 @@ measure() { # label, command...
     while awk -v a=$t0 -v b=$(now) -v s=$SETTLE 'BEGIN{exit !(b-a<s)}'; do sleep 1; done
     pid=$(pgrep -x java | head -1); [ -z "$pid" ] && pid=$(pgrep -x kura-native | head -1)
     rss=$(awk '/VmRSS/{print $2}' /proc/$pid/status); thr=$(awk '/Threads/{print $2}' /proc/$pid/status); cpu=$(awk -v tck=100 '{printf "%.1f", ($14+$15)/tck}' /proc/$pid/stat)
-    echo "$label,$r,${tf:-NA},${tq:-NA},$rss,$cpu,$thr" | tee -a $OUT
+    echo "$label${COLD:+}${SUFFIX:-},$r,${tf:-NA},${tq:-NA},$rss,$cpu,$thr" | tee -a $OUT
     kill -TERM $P; wait $P 2>/dev/null; sleep 2; pkill -x java; pkill -x kura-native; sleep 1
   done
 }

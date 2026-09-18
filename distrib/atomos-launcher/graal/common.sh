@@ -8,4 +8,5 @@ build_cp() {
   echo "$CP"
 }
 D=/opt/eclipse/kura
-KURA_PROPS="-Dkura.os.version=debian -Dkura.arch=x86_64 -Dtarget.device=x86_64 -Dorg.eclipse.kura.core.crypto.secretKey= -Declipse.ignoreApp=true -Dkura.home=$D -Dkura.configuration=file:$D/framework/kura.properties -Dkura.custom.configuration=file:$D/user/kura_custom.properties -Ddpa.configuration=$D/packages/dpa.properties -Dlog4j.configurationFile=file:$D/log4j/log4j.xml -Dlog4j2.disable.jmx=true -Djdk.tls.trustNameService=true"
+ARCH=$(uname -m)
+KURA_PROPS="-Dkura.os.version=debian -Dkura.arch=$ARCH -Dtarget.device=$ARCH -Dorg.eclipse.kura.core.crypto.secretKey= -Declipse.ignoreApp=true -Dkura.home=$D -Dkura.configuration=file:$D/framework/kura.properties -Dkura.custom.configuration=file:$D/user/kura_custom.properties -Ddpa.configuration=$D/packages/dpa.properties -Dlog4j.configurationFile=file:$D/log4j/log4j.xml -Dlog4j2.disable.jmx=true -Djdk.tls.trustNameService=true"
