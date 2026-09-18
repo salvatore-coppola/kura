@@ -64,6 +64,7 @@ public final class KuraAtomosLauncher {
             traceUnregistrations(framework);
         }
         List<String> report = installContents(atomos);
+        framework.adapt(org.osgi.framework.wiring.FrameworkWiring.class).resolveBundles(null);
         framework.start();
         if (Boolean.getBoolean("kura.atomos.diag")) {
             long active = java.util.Arrays.stream(framework.getBundleContext().getBundles())
