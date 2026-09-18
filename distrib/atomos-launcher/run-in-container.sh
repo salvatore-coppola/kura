@@ -3,11 +3,11 @@
 LEVELS=${1:-"1 1s"}; T=${2:-45}; shift 2 2>/dev/null
 PATCHES="$(cd "$(dirname "$0")" && pwd)/patches/out"
 VOLS=(-v "$(cd "$(dirname "$0")" && pwd)/target:/atomos")
-for j in "$PATCHES"/*.jar; do [ -f "$j" ] || continue; t=$(find /home/scoppola/kura-native-bench/kura/plugins -name "$(basename "$j")" | head -1); [ -n "$t" ] && VOLS+=(-v "$j:/opt/eclipse/kura/plugins/${t#*/kura/plugins/}:ro"); done
-docker run --rm --privileged "${VOLS[@]}" kura-bench:jvm bash -c '
+for j in "$PATCHES"/*/*.jar; do [ -f "$j" ] || continue; lvl=$(basename "$(dirname "$j")"); VOLS+=(-v "$j:/opt/eclipse/kura/plugins/$lvl/$(basename "$j"):ro"); done
+docker run --rm --privileged "${VOLS[@]}" kura-bench:jvm env EXCLUDE="${EXCLUDE:-}" bash -c '
 LEVELS="$1"; T=$2; shift 2
 CP=/atomos/org.eclipse.kura.atomos.launcher-6.0.0-SNAPSHOT.jar:/atomos/lib/org.apache.felix.atomos-1.0.0.jar:/opt/eclipse/kura/plugins/org.eclipse.osgi-3.21.0.jar
-for l in $LEVELS; do for j in /opt/eclipse/kura/plugins/$l/*.jar; do CP=$CP:$j; done; done
+for l in $LEVELS; do for j in /opt/eclipse/kura/plugins/$l/*.jar; do if [ -n "${EXCLUDE:-}" ] && echo "$j" | grep -qE "$EXCLUDE"; then echo "excluded: $(basename $j)"; continue; fi; CP=$CP:$j; done; done
 D=/opt/eclipse/kura
 timeout $T java --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED \
  -Dkura.os.version=debian -Dkura.arch=x86_64 -Dtarget.device=x86_64 -Dorg.eclipse.kura.core.crypto.secretKey= -Declipse.ignoreApp=true \

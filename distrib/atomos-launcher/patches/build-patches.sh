@@ -4,8 +4,10 @@ set -e
 cd "$(dirname "$0")"
 ORIG=/home/scoppola/kura-native-bench/kura/plugins/2s/osgi-resource-locator-1.0.3.jar
 OSGI=../target/lib/org.eclipse.osgi-3.21.0.jar
-rm -rf out build && mkdir -p out build/orl
+rm -rf out build && mkdir -p out/2s out/1s build/orl
 javac --release 21 -nowarn -cp "$ORIG:$OSGI" -d build/orl $(find osgi-resource-locator/src -name "*.java")
-cp "$ORIG" out/osgi-resource-locator-1.0.3.jar
-(cd build/orl && jar uf ../../out/osgi-resource-locator-1.0.3.jar org)
-unzip -l out/osgi-resource-locator-1.0.3.jar | grep -c "class$"
+cp "$ORIG" out/2s/osgi-resource-locator-1.0.3.jar
+(cd build/orl && jar uf ../../out/2s/osgi-resource-locator-1.0.3.jar org)
+cp ~/.m2/repository/org/apache/aries/spifly/org.apache.aries.spifly.static.bundle/1.3.7/org.apache.aries.spifly.static.bundle-1.3.7.jar out/1s/
+jar cfm out/1s/org.eclipse.kura.atomos.serviceloader.shim-1.0.0.jar serviceloader-shim/MANIFEST.MF
+find out -name "*.jar"
