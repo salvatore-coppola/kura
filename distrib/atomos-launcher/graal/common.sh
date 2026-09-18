@@ -1,10 +1,12 @@
 # shared by the graal scripts, executed inside the kura-graal container (paths: /atomos = launcher target, /graal = this dir)
-EXCLUDE_RE=$(cat /graal/profile-min.exclude)
+PROFILE=${PROFILE:-min}
+EXCLUDE_RE=$(cat /graal/profile-${PROFILE}.exclude)
 build_cp() {
   CP=/atomos/org.eclipse.kura.atomos.launcher-6.0.0-SNAPSHOT.jar:/atomos/lib/org.apache.felix.atomos-1.0.0.jar:/opt/eclipse/kura/plugins/org.eclipse.osgi-3.21.0.jar
+  PATCHED=$(ls /atomos/patches/*/*.jar 2>/dev/null | xargs -n1 basename | tr '\n' '|' | sed 's/|$//')
   for l in 1 1s 2 2s 3 3s 4 4s 5 5s 6 6s; do for j in /opt/eclipse/kura/plugins/$l/*.jar; do
-    echo "$j" | grep -qE "$EXCLUDE_RE|osgi-resource-locator" && continue; CP=$CP:$j; done; done
-  for j in /atomos/patches/*/*.jar; do echo "$j" | grep -q osgi-resource-locator && continue; CP=$CP:$j; done
+    echo "$j" | grep -qE "$EXCLUDE_RE" && continue; [ -n "$PATCHED" ] && echo "$(basename $j)" | grep -qxE "$PATCHED" && continue; CP=$CP:$j; done; done
+  for j in /atomos/patches/*/*.jar; do CP=$CP:$j; done
   echo "$CP"
 }
 D=/opt/eclipse/kura
