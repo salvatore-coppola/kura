@@ -214,6 +214,10 @@ public class JerseyExtensionProvider extends JerseyApplicationContentProvider {
 		 * Get the extension object
 		 */
 		public Object getExtensionObject() {
+			if (System.getProperty("org.graalvm.nativeimage.imagecode") != null
+					|| Boolean.getBoolean("osgitech.rest.extension.proxy.disabled")) {
+				return getDelegate();
+			}
 			if(proxyClassLoader == null) {
 				proxyClassLoader = new ClassLoader(
 						getProviderObject().getServiceReference().getBundle()

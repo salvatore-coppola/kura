@@ -1,6 +1,609 @@
 [
-  {"name":"org.apache.logging.slf4j.SLF4JServiceProvider","allDeclaredConstructors":true,"allPublicConstructors":true,"allDeclaredMethods":true,"allPublicMethods":true},
-  {"name":"org.apache.logging.log4j.core.impl.Log4jProvider","allDeclaredConstructors":true,"allPublicConstructors":true,"allDeclaredMethods":true},
-  {"name":"org.eclipse.kura.KuraException","allDeclaredConstructors":true,"allPublicConstructors":true,"allDeclaredMethods":true,"allDeclaredFields":true},
-  {"name":"org.eclipse.kura.KuraErrorCode","allDeclaredFields":true,"allDeclaredMethods":true}
+ {
+  "name": "org.apache.logging.slf4j.SLF4JServiceProvider",
+  "allDeclaredConstructors": true,
+  "allPublicConstructors": true,
+  "allDeclaredMethods": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.apache.logging.log4j.core.impl.Log4jProvider",
+  "allDeclaredConstructors": true,
+  "allPublicConstructors": true,
+  "allDeclaredMethods": true
+ },
+ {
+  "name": "org.eclipse.kura.KuraException",
+  "allDeclaredConstructors": true,
+  "allPublicConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true
+ },
+ {
+  "name": "org.eclipse.kura.KuraErrorCode",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true
+ },
+ {
+  "name": "jakarta.ws.rs.container.ContainerRequestFilter",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true
+ },
+ {
+  "name": "jakarta.ws.rs.container.ContainerResponseFilter",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true
+ },
+ {
+  "name": "jakarta.ws.rs.container.DynamicFeature",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true
+ },
+ {
+  "name": "jakarta.ws.rs.container.PreMatching",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true
+ },
+ {
+  "name": "jakarta.ws.rs.ext.ExceptionMapper",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true
+ },
+ {
+  "name": "jakarta.ws.rs.ext.MessageBodyReader",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true
+ },
+ {
+  "name": "jakarta.ws.rs.ext.MessageBodyWriter",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true
+ },
+ {
+  "name": "jakarta.ws.rs.ext.ReaderInterceptor",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true
+ },
+ {
+  "name": "jakarta.ws.rs.ext.WriterInterceptor",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true
+ },
+ {
+  "name": "jakarta.ws.rs.ext.ParamConverterProvider",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true
+ },
+ {
+  "name": "jakarta.ws.rs.ext.ContextResolver",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true
+ },
+ {
+  "name": "jakarta.ws.rs.core.Feature",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true
+ },
+ {
+  "name": "jakarta.ws.rs.core.Application",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true
+ },
+ {
+  "name": "jakarta.annotation.Priority",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true
+ },
+ {
+  "name": "jakarta.ws.rs.ext.Provider",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true
+ },
+ {
+  "name": "java.util.function.Supplier",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true
+ },
+ {
+  "name": "org.glassfish.hk2.api.ProxyCtl",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true
+ },
+ {
+  "name": "org.eclipse.kura.cloudconnection.request.RequestHandler",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.cloudconnection.request.RequestHandlerContext",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.cloudconnection.request.RequestHandlerContextConstants",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.cloudconnection.request.RequestHandlerMessageConstants",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.cloudconnection.request.RequestHandlerRegistry",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.auth.dto.AuthenticationInfoDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.auth.dto.AuthenticationResponseDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.auth.dto.IdentityInfoDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.auth.dto.UpdatePasswordDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.auth.dto.UsernamePasswordDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.auth.dto.XsrfTokenDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.cloudconnection.provider.dto.CloudComponentFactories",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.cloudconnection.provider.dto.CloudComponentInstances",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.cloudconnection.provider.dto.CloudConnectionFactoryInfo",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.cloudconnection.provider.dto.CloudConnectionFactoryPidAndCloudEndpointPid",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.cloudconnection.provider.dto.CloudConnectionState",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.cloudconnection.provider.dto.CloudEndpointInstance",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.cloudconnection.provider.dto.CloudEndpointPidRequest",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.cloudconnection.provider.dto.CloudEndpointType",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.cloudconnection.provider.dto.CloudPubSubType",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.cloudconnection.provider.dto.ConnectedStatus",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.cloudconnection.provider.dto.PidAndFactoryPidAndCloudEndpointPid",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.cloudconnection.provider.dto.PubSubFactoryInfo",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.cloudconnection.provider.dto.PubSubInstance",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.identity.provider.dto.PermissionDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.identity.provider.dto.UserConfigDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.identity.provider.dto.UserDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.identity.provider.dto.ValidatorOptionsDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.identity.provider.v2.dto.AdditionalConfigurationsDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.identity.provider.v2.dto.IdentityConfigurationDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.identity.provider.v2.dto.IdentityConfigurationRequestDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.identity.provider.v2.dto.IdentityDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.identity.provider.v2.dto.PasswordConfigurationDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.identity.provider.v2.dto.PasswordStrenghtRequirementsDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.identity.provider.v2.dto.PermissionConfigurationDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.identity.provider.v2.dto.PermissionDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.keystore.provider.CsrResponse",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.keystore.request.CsrReadRequest",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.keystore.request.EntryRequest",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.keystore.request.KeyPairWriteRequest",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.keystore.request.PrivateKeyWriteRequest",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.keystore.request.TrustedCertificateWriteRequest",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.keystore.request.handler.KeystoreServiceRequestHandler",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.keystore.request.handler.KeystoreServiceRequestHandlerV1",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.keystore.request.handler.KeystoreServiceRequestHandlerV2",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.security.provider.dto.DebugEnabledDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.service.listing.provider.dto.FilterDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.service.listing.provider.dto.InterfaceNamesDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.internal.rest.service.listing.provider.dto.RefDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.request.handler.jaxrs.DefaultExceptionHandler",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.request.handler.jaxrs.JaxRsRequestHandlerProxy",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.request.handler.jaxrs.RequestParameterHandlers",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.request.handler.jaxrs.ResponseBodyHandlers",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.request.handler.jaxrs.annotation.EXEC",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.request.handler.jaxrs.consumer.RequestArgumentHandler",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.request.handler.jaxrs.consumer.RequestParameterHandler",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.request.handler.jaxrs.consumer.ResponseBodyHandler",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.rest.configuration.api.AdDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.rest.configuration.api.ComponentConfigurationDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.rest.configuration.api.CreateFactoryComponentConfigurationsRequest",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.rest.configuration.api.DeleteFactoryComponentRequest",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.rest.configuration.api.FactoryComponentConfigurationDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.rest.configuration.api.IconDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.rest.configuration.api.OcdDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.rest.configuration.api.OptionDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.rest.configuration.api.PropertyDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.rest.configuration.api.UpdateComponentConfigurationRequest",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.rest.system.dto.ExtendedPropertiesDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.rest.system.dto.FilterDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.rest.system.dto.FrameworkPropertiesDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ },
+ {
+  "name": "org.eclipse.kura.rest.system.dto.KuraPropertiesDTO",
+  "allDeclaredFields": true,
+  "allDeclaredConstructors": true,
+  "allDeclaredMethods": true,
+  "unsafeAllocated": true
+ }
 ]
