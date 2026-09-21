@@ -1,8 +1,8 @@
 #!/bin/bash
 # Inside the container: extract the shared libraries carried by the platform fragments into /work/native-libs.
 set -u
-OUT=/work/native-libs; rm -rf $OUT; mkdir -p $OUT
-[ -e /usr/lib64/libudev.so.0 ] || ln -sf /usr/lib64/libudev.so.1 /usr/lib64/libudev.so.0 2>/dev/null
+OUT=${OUT:-/work/native-libs}; rm -rf $OUT; mkdir -p $OUT
+[ -e /usr/lib64/libudev.so.0 ] || [ ! -w /usr/lib64 ] || ln -sf /usr/lib64/libudev.so.1 /usr/lib64/libudev.so.0 2>/dev/null
 python3 - "$OUT" "$(uname -m)" <<'PY'
 import sys, glob, zipfile, os, re
 out, arch = sys.argv[1], sys.argv[2]
