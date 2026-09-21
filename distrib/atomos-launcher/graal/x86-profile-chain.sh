@@ -1,9 +1,10 @@
 #!/bin/bash
 # Host side: agent run, native build and REST smoke test of the REST profile on x86_64.
 set -u
-A=/home/scoppola/kura-develop/distrib/atomos-launcher; W=/home/scoppola/kura-native-bench/graal-work-rest
-RUN="docker run --rm --privileged -e PROFILE=rest -v $A/target:/atomos:ro -v $A/graal:/graal:ro -v $W:/work kura-graal:21"
-if [ -z "${SKIP_AGENT:-}" ]; then echo "### agent $(date -Is)"; $RUN rm -rf /work/cfg; $RUN bash /graal/agent-run.sh 100 2>&1 | grep -E "^REST|bundles by state|predefined-classes|reflect-config" | cut -c1-160; grep -oE '"nameInfo":"[^"]+"' $W/cfg/predefined-classes-config.json | head -12; fi
+PROFILE=${PROFILE:-rest}
+A=/home/scoppola/kura-develop/distrib/atomos-launcher; W=/home/scoppola/kura-native-bench/graal-work-$PROFILE
+RUN="docker run --rm --privileged -e PROFILE=$PROFILE -v $A/target:/atomos:ro -v $A/graal:/graal:ro -v $W:/work kura-graal:21"
+if [ -z "${SKIP_AGENT:-}" ]; then echo "### natives $(date -Is)"; mkdir -p $W; $RUN bash /graal/extract-natives.sh; echo "### agent $(date -Is)"; $RUN rm -rf /work/cfg; $RUN bash /graal/agent-run.sh 100 2>&1 | grep -E "^REST|bundles by state|predefined-classes|reflect-config" | cut -c1-160; grep -oE '"nameInfo":"[^"]+"' $W/cfg/predefined-classes-config.json | head -12; fi
 echo "### build $(date -Is)"; $RUN bash /graal/build-native.sh -J-Xmx10g > $W/build.log 2>&1; grep -E "Finished generating|Error|Caused by|in total|Peak RSS" $W/build.log | head -4
 echo "### rest test $(date -Is)"
 $RUN bash -c '. /graal/common.sh; [ -d /work/native-libs ] && NATIVE_LIBS_OPT="-Djava.library.path=/work/native-libs" || NATIVE_LIBS_OPT=""; rm -rf /work/atomos_lib; mkdir -p /work/atomos_lib; for j in $(echo "$(build_cp)" | tr ":" " "); do case "$j" in /atomos/org.eclipse.kura.atomos.launcher*) continue;; /atomos/lib/*|*/org.eclipse.osgi-3.21.0.jar) ln -s "$j" "/work/atomos_lib/$(basename "$j")"; continue;; esac; lvl=$(basename "$(dirname "$j")"); ln -s "$j" "/work/atomos_lib/${lvl}__$(basename "$j")"; done; rm -f /var/log/kura.log

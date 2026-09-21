@@ -16,4 +16,7 @@ mkdir -p out/5s build/rest
 javac --release 21 -nowarn -proc:none -cp "$(ls /home/scoppola/kura-native-bench/kura/plugins/*/*.jar | tr '\n' ':')$OSGI" -d build/rest $(find osgitech-rest/src -name "*.java")
 cp "$REST" out/5s/org.eclipse.osgitech.rest-1.2.3.jar
 (cd build/rest && jar uf ../../out/5s/org.eclipse.osgitech.rest-1.2.3.jar org)
+# equinox.io: drop the malformed org/osgi/service/io/package-info.class that makes native-image fail
+EQIO=/home/scoppola/kura-native-bench/kura/plugins/1s/org.eclipse.equinox.io-1.1.300.jar
+cp "$EQIO" out/1s/org.eclipse.equinox.io-1.1.300.jar && zip -q -d out/1s/org.eclipse.equinox.io-1.1.300.jar 'org/osgi/service/io/package-info.class' 'org/osgi/service/io/package-info.java' 2>/dev/null; unzip -l out/1s/org.eclipse.equinox.io-1.1.300.jar | grep -c package-info
 find out -name "*.jar"
