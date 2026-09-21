@@ -605,5 +605,40 @@
   "allDeclaredConstructors": true,
   "allDeclaredMethods": true,
   "unsafeAllocated": true
+ },
+ {
+  "name": "org.glassfish.jersey.servlet.WebComponent$HttpServletResponseReferencingFactory",
+  "allDeclaredConstructors": true,
+  "allPublicConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true
+ },
+ {
+  "name": "org.glassfish.jersey.servlet.WebComponent$HttpServletRequestReferencingFactory",
+  "allDeclaredConstructors": true,
+  "allPublicConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true
+ },
+ {
+  "name": "org.glassfish.jersey.servlet.WebComponent$WebComponentBinder",
+  "allDeclaredConstructors": true,
+  "allPublicConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true
+ },
+ {
+  "name": "org.glassfish.jersey.servlet.internal.PersistenceUnitBinder",
+  "allDeclaredConstructors": true,
+  "allPublicConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true
+ },
+ {
+  "name": "org.glassfish.jersey.server.internal.inject.ParamInjectionResolver",
+  "allDeclaredConstructors": true,
+  "allPublicConstructors": true,
+  "allDeclaredMethods": true,
+  "allDeclaredFields": true
  }
 ]

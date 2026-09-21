@@ -9,10 +9,7 @@ java -agentlib:native-image-agent=config-output-dir=/work/cfg,experimental-class
 P=$!; sleep $((T/2))
 if [ "$PROFILE" = rest ]; then
   for i in $(seq 1 60); do curl -sk -m 2 -o /dev/null https://127.0.0.1:443/services/session/v1/currentIdentity && break; sleep 1; done
-  for path in session/v1/currentIdentity deviceConfig/v1/configurableComponentPids inventory/v1/bundles identity/v1/identities system/v1/properties/kura keystores/v2/keystores; do
-    echo "REST $path: $(curl -sk -m 5 -o /dev/null -w "%{http_code}" https://127.0.0.1:443/services/$path) / auth: $(curl -sk -m 5 -u admin:admin -o /dev/null -w "%{http_code}" https://127.0.0.1:443/services/$path)"
-  done
-  curl -sk -m 5 -X POST -H "Content-Type: application/json" -d "{\"username\":\"admin\",\"password\":\"admin\"}" -o /dev/null -w "REST login: %{http_code}\n" https://127.0.0.1:443/services/session/v1/login/password
+  bash /graal/rest-session-test.sh
 fi
 sleep $((T/2))
 echo "-- states:"; grep -E "bundles by state" /work/agent-run.out | tail -1; grep -E "state=16|^INSTALLED" /work/agent-run.out | grep -vE " (java|jdk)\." | head -5
