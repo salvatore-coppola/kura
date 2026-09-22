@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 import org.eclipse.osgitech.rest.dto.DTOConverter;
 import org.eclipse.osgitech.rest.proxy.ExtensionProxyFactory;
 import org.glassfish.jersey.InjectionManagerProvider;
+import org.glassfish.jersey.internal.inject.InjectionManager;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceObjects;
 import org.osgi.framework.wiring.BundleWiring;
@@ -167,7 +168,10 @@ public class JerseyExtensionProvider extends JerseyApplicationContentProvider {
 					" and contracts" + Arrays.stream(contracts).map(Class::getName).collect(Collectors.joining(", ")));
 			return null;
 		}
-		InjectionManagerProvider.getInjectionManager(context).inject(service);
+		InjectionManager injectionManager = InjectionManagerProvider.getInjectionManager(context);
+		injectionManager.inject(service);
+		org.slf4j.LoggerFactory.getLogger(JerseyExtensionProvider.class).info("extension " + getName() + " " + service.getClass().getName() + "@" + System.identityHashCode(service)
+				+ " injected with " + injectionManager.getClass().getSimpleName() + "@" + System.identityHashCode(injectionManager));
 		return new JerseyExtension(service);
 	}
 	
@@ -216,6 +220,8 @@ public class JerseyExtensionProvider extends JerseyApplicationContentProvider {
 		public Object getExtensionObject() {
 			if (System.getProperty("org.graalvm.nativeimage.imagecode") != null
 					|| Boolean.getBoolean("osgitech.rest.extension.proxy.disabled")) {
+				org.slf4j.LoggerFactory.getLogger(JerseyExtensionProvider.class).info("extension object for " + getName() + ": plain delegate " + getDelegate().getClass().getName()
+						+ "@" + System.identityHashCode(getDelegate()));
 				return getDelegate();
 			}
 			if(proxyClassLoader == null) {

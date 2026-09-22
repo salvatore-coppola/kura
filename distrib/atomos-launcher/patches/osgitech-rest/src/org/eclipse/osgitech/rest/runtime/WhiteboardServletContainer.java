@@ -104,6 +104,8 @@ public class WhiteboardServletContainer extends ServletContainer {
 		lock.writeLock().lock();
 		try {
 			if (initialized.get()) {
+				org.slf4j.LoggerFactory.getLogger(WhiteboardServletContainer.class).info("Jersey application reload with {} instances, {} classes",
+						configuration.getInstances().size(), configuration.getClasses().size());
 				try {
 					try {
 						super.reload(configuration);
@@ -116,6 +118,7 @@ public class WhiteboardServletContainer extends ServletContainer {
 					// TODO can we avoid this completely
 					// Sometimes when reloading we find the application is in a bad state
 					if(getApplicationHandler().getInjectionManager().isShutdown()) {
+						org.slf4j.LoggerFactory.getLogger(WhiteboardServletContainer.class).info("Jersey injection manager was shut down, re-initializing the servlet");
 						try {
 							this.initialConfig = configuration;
 							init();

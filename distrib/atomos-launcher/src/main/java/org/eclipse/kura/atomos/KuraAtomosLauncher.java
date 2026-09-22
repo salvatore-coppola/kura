@@ -15,10 +15,15 @@ package org.eclipse.kura.atomos;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,8 +37,10 @@ import java.util.regex.Pattern;
 import org.apache.felix.atomos.Atomos;
 import org.apache.felix.atomos.AtomosContent;
 import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
 import org.osgi.framework.Constants;
+import org.osgi.framework.ServiceReference;
 import org.osgi.framework.launch.Framework;
 import org.osgi.framework.startlevel.BundleStartLevel;
 import org.osgi.framework.startlevel.FrameworkStartLevel;
@@ -62,6 +69,7 @@ public final class KuraAtomosLauncher {
         framework.adapt(FrameworkStartLevel.class).setInitialBundleStartLevel(PARKING_LEVEL);
         if (Boolean.getBoolean("kura.atomos.diag")) {
             traceUnregistrations(framework);
+            traceLogService(framework);
         }
         List<String> report = installContents(atomos);
         framework.adapt(org.osgi.framework.wiring.FrameworkWiring.class).resolveBundles(null);
@@ -74,6 +82,12 @@ public final class KuraAtomosLauncher {
         }
         raiseStartLevel(framework, Integer.getInteger("kura.atomos.startLevel", 6));
         long startedMs = (System.nanoTime() - t0) / 1_000_000;
+        if (System.getProperty("kura.atomos.diag.comm") != null) {
+            commDiag(framework.getBundleContext(), System.getProperty("kura.atomos.diag.comm"));
+        }
+        if (Boolean.getBoolean("kura.atomos.diag.hid")) {
+            hidDiag(framework.getBundleContext());
+        }
 
         if (Boolean.getBoolean(DUMP_PROPERTY)) {
             dump(framework, report, startedMs);
@@ -211,6 +225,32 @@ public final class KuraAtomosLauncher {
         });
     }
 
+    private static void traceLogService(Framework framework) {
+        org.osgi.framework.BundleContext ctx = framework.getBundleContext();
+        ServiceReference<org.osgi.service.log.LogReaderService> ref = ctx.getServiceReference(org.osgi.service.log.LogReaderService.class);
+        if (ref == null) {
+            System.out.println("no LogReaderService");
+            return;
+        }
+        ctx.getService(ref).addLogListener(entry -> {
+            if (entry.getLogLevel().ordinal() <= org.osgi.service.log.LogLevel.WARN.ordinal()) {
+                System.out.println("OSGI LOG " + entry.getLogLevel() + " [" + entry.getLoggerName() + "] " + entry.getMessage()
+                        + (entry.getException() != null ? " -> " + entry.getException() : ""));
+                Throwable t = entry.getException();
+                for (int depth = 0; t != null && depth < 4; t = t.getCause(), depth++) {
+                    for (StackTraceElement e : t.getStackTrace()) {
+                        if (e.getClassName().startsWith("org.eclipse.kura") || e.getClassName().startsWith("org.h2")) {
+                            System.out.println("    at " + e);
+                        }
+                    }
+                    if (t.getCause() != null) {
+                        System.out.println("  caused by " + t.getCause());
+                    }
+                }
+            }
+        });
+    }
+
     private static void scrDiag(Framework framework) {
         org.osgi.framework.BundleContext ctx = framework.getBundleContext();
         Map<String, List<String>> census = new java.util.TreeMap<>();
@@ -237,9 +277,19 @@ public final class KuraAtomosLauncher {
             return;
         }
         org.osgi.service.component.runtime.ServiceComponentRuntime scr = ctx.getService(scrRef);
-        System.out.println("--- component configurations not satisfied/active:");
+        String filter = System.getProperty("kura.atomos.diag.filter");
+        System.out.println("--- component configurations not satisfied/active" + (filter == null ? ":" : ", plus all matching " + filter + ":"));
         for (org.osgi.service.component.runtime.dto.ComponentDescriptionDTO d : scr.getComponentDescriptionDTOs()) {
+            boolean matches = filter != null && d.name.matches(filter);
+            if (matches && scr.getComponentConfigurationDTOs(d).isEmpty()) {
+                System.out.println(d.name + " has no configuration (policy=" + d.configurationPolicy + ", factory=" + d.factory
+                        + ", enabled=" + scr.isComponentEnabled(d) + ")");
+            }
             for (org.osgi.service.component.runtime.dto.ComponentConfigurationDTO c : scr.getComponentConfigurationDTOs(d)) {
+                if (matches) {
+                    System.out.println(d.name + " state=" + c.state + " pid=" + c.properties.get("kura.service.pid") + " services="
+                            + Arrays.toString(d.serviceInterfaces));
+                }
                 if (c.state != org.osgi.service.component.runtime.dto.ComponentConfigurationDTO.ACTIVE
                         && c.state != org.osgi.service.component.runtime.dto.ComponentConfigurationDTO.SATISFIED) {
                     System.out.println(d.name + " state=" + c.state + " failure=" + c.failure);
@@ -250,6 +300,55 @@ public final class KuraAtomosLauncher {
             }
         }
         ctx.ungetService(scrRef);
+    }
+
+    private static void commDiag(BundleContext ctx, String port) {
+        String uri = "comm:" + port + ";baudrate=9600;databits=8;stopbits=1;parity=0;flowcontrol=0;timeout=2000;receivetimeout=500";
+        ServiceReference<?>[] refs = null;
+        try {
+            refs = ctx.getServiceReferences("org.osgi.service.io.ConnectionFactory", "(io.scheme=comm)");
+            if (refs == null) {
+                System.out.println("comm diag: no comm ConnectionFactory registered");
+                return;
+            }
+            Object factory = ctx.getService(refs[0]);
+            Method create = factory.getClass().getMethod("createConnection", String.class, int.class, boolean.class);
+            Class<?> commConnection = refs[0].getBundle().loadClass("org.eclipse.kura.comm.CommConnection");
+            Object connection = create.invoke(factory, uri, 3, true);
+            try (OutputStream out = (OutputStream) commConnection.getMethod("openOutputStream").invoke(connection);
+                    InputStream in = (InputStream) commConnection.getMethod("openInputStream").invoke(connection)) {
+                out.write("AT\r\n".getBytes(StandardCharsets.US_ASCII));
+                out.flush();
+                System.out.println("comm diag: opened " + uri + ", wrote 4 bytes, available=" + in.available());
+            } finally {
+                commConnection.getMethod("close").invoke(connection);
+            }
+        } catch (Exception e) {
+            Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
+            System.out.println("comm diag failed for " + uri + ": " + cause + (cause.getCause() != null ? " <- " + cause.getCause() : ""));
+        } finally {
+            if (refs != null) {
+                ctx.ungetService(refs[0]);
+            }
+        }
+    }
+
+    private static void hidDiag(BundleContext ctx) {
+        try {
+            Bundle hid = Arrays.stream(ctx.getBundles()).filter(b -> "com.codeminders.hidapi".equals(b.getSymbolicName()))
+                    .findFirst().orElse(null);
+            if (hid == null) {
+                System.out.println("hid diag: hidapi bundle not present");
+                return;
+            }
+            Class<?> manager = hid.loadClass("com.codeminders.hidapi.HIDManager");
+            Object instance = manager.getMethod("getInstance").invoke(null);
+            Object[] devices = (Object[]) manager.getMethod("listDevices").invoke(instance);
+            System.out.println("hid diag: hidapi native library loaded, devices=" + (devices == null ? 0 : devices.length));
+        } catch (Exception | LinkageError e) {
+            Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
+            System.out.println("hid diag failed: " + cause + (cause.getCause() != null ? " <- " + cause.getCause() : ""));
+        }
     }
 
     private static String stateName(int state) {
