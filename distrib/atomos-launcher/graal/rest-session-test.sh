@@ -14,6 +14,6 @@ if grep -q '"passwordChangeNeeded":true' /tmp/login.json; then
   code=$(curl -sk -m 10 -b $C -c $C -o /tmp/xsrf.json -w '%{http_code}' "$B/session/v1/xsrfToken"); X=$(grep -oE '"xsrfToken":"[^"]+"' /tmp/xsrf.json | cut -d'"' -f4); echo "xsrfToken: $code ${X:0:12}..."
 fi
 for p in session/v1/currentIdentity inventory/v1/bundles system/v1/properties/kura identity/v1/identities configuration/v2/configurableComponents keystores/v2/entries; do
-  code=$(curl -sk -m 15 -b $C -H "X-XSRF-Token: $X" -o /tmp/r.json -w '%{http_code}' "$B/$p"); echo "GET $p: $code $(head -c 100 /tmp/r.json | tr -d '\n')"
+  code=$(curl -sk -m 60 -b $C -H "X-XSRF-Token: $X" -o /tmp/r.json -w '%{http_code}' "$B/$p"); echo "GET $p: $code $(head -c 100 /tmp/r.json | tr -d '\n')"
 done
 code=$(curl -sk -m 10 -b $C -H "X-XSRF-Token: $X" -X POST -o /dev/null -w '%{http_code}' "$B/session/v1/logout"); echo "logout: $code"

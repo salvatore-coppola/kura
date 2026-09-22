@@ -640,5 +640,53 @@
   "allPublicConstructors": true,
   "allDeclaredMethods": true,
   "allDeclaredFields": true
+ },
+ {
+  "name": "org.eclipse.kura.comm.CommConnection",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true,
+  "allPublicConstructors": true
+ },
+ {
+  "name": "javax.microedition.io.StreamConnection",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true,
+  "allPublicConstructors": true
+ },
+ {
+  "name": "javax.microedition.io.InputConnection",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true,
+  "allPublicConstructors": true
+ },
+ {
+  "name": "javax.microedition.io.OutputConnection",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true,
+  "allPublicConstructors": true
+ },
+ {
+  "name": "javax.microedition.io.Connection",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true,
+  "allPublicConstructors": true
+ },
+ {
+  "name": "org.eclipse.kura.core.comm.CommConnectionImpl",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true,
+  "allPublicConstructors": true
+ },
+ {
+  "name": "org.eclipse.kura.core.comm.CommConnectionFactory",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true,
+  "allPublicConstructors": true
+ },
+ {
+  "name": "com.codeminders.hidapi.HIDManager",
+  "allPublicMethods": true,
+  "allDeclaredMethods": true,
+  "allPublicConstructors": true
  }
 ]

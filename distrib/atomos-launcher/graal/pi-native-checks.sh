@@ -28,7 +28,7 @@ PROPS="-Dkura.os.version=debian -Dkura.arch=aarch64 -Dtarget.device=aarch64 -Dor
 echo "### $(date -Is) host checks"; systemctl stop kura; while pgrep -x java >/dev/null; do sleep 0.5; done
 cp -a $SNAP $B/snapshots.bak; cp -a $SEC $B/security.bak
 bash $B/graal/broker-up.sh $B/broker host 192.168.1.19
-reset_state() { find $SNAP -name 'snapshot_*.xml' ! -name snapshot_0.xml -delete; rm -rf $SEC; cp -a $B/security.bak $SEC; }
+reset_state() { find $SNAP -name 'snapshot_*.xml' ! -name snapshot_0.xml -delete; rm -rf $SEC; cp -a $B/security.bak $SEC; [ -d $B/default-security ] && cp $B/default-security/*.ks $SEC/ && rm -rf $SEC/cacerts.ks.crl $SEC/cacerts.ks.crl.d; chown -R kurad:kurad $SEC; }
 COMM=/dev/ttyS0; for d in /dev/ttyUSB0 /dev/ttyACM0; do [ -e $d ] && COMM=$d; done
 echo "usb devices: $(lsusb 2>/dev/null | grep -vi "root hub" | cut -d' ' -f6- | tr '\n' ';')"; echo "serial for diag: $COMM; hidraw: $(ls /dev/hidraw* 2>/dev/null | tr '\n' ' ')"
 DIAG="-Dkura.atomos.diag.comm=$COMM -Dkura.atomos.diag.hid=true -Dkura.atomos.dump=true"
