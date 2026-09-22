@@ -1,0 +1,618 @@
+[
+ {
+  "name": "org.eclipse.soda.dk.comm.DeviceListEntry",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.eclipse.soda.dk.comm.NSParallelPort",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.eclipse.soda.dk.comm.SerialStatusEventThread",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.eclipse.soda.dk.comm.SerialDataEventThread",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.eclipse.soda.dk.comm.ParallelErrorEventThread",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.eclipse.soda.dk.comm.NSSerialPort",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.eclipse.soda.dk.comm.NSDeviceOutputStream",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.eclipse.soda.dk.comm.DeviceList",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.eclipse.soda.dk.comm.NSDeviceInputStream",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.eclipse.soda.dk.comm.NSCommDriver",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "com.codeminders.hidapi.HIDAPITest",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "com.codeminders.hidapi.HIDManager",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "com.codeminders.hidapi.ClassPathLibraryLoader",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "com.codeminders.hidapi.HIDDevice",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "com.codeminders.hidapi.HIDDeviceInfo",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "com.codeminders.hidapi.HIDDeviceNotFoundException",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.BosDescriptor",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.BosDevCapabilityDescriptor",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.BufferUtils",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.ConfigDescriptor",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.ContainerIdDescriptor",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.Context",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.ControlSetup",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.DescriptorUtils",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.Device",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.DeviceDescriptor",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.DeviceHandle",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.DeviceList",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.DeviceListIterator",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.EndpointDescriptor",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.HotplugCallback",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.HotplugCallbackHandle",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.Interface",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.InterfaceDescriptor",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.IsoPacketDescriptor",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.LibUsb",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.LibUsbException",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.Loader",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.LoaderException",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.Pollfd",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.PollfdListener",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.Pollfds",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.PollfdsIterator",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.SsEndpointCompanionDescriptor",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.SsUsbDeviceCapabilityDescriptor",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.Transfer",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.TransferCallback",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.Usb20ExtensionDescriptor",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.Version",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.AbstractDevice",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.AbstractIrpQueue$1",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.AbstractIrpQueue",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.Config",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.Configuration",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.ControlIrpQueue",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.DeviceId",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.DeviceListenerList",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.DeviceManager$1",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.DeviceManager",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.DeviceNotFoundException",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.Endpoint",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.EventListenerList",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.ExceptionUtils",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.Hub",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.Interface",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.IrpQueue",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.NonHub",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.Pipe",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.PipeListenerList",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.Port",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.Ports",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.RootHub",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.RootHubConfiguration",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.RootHubInterface",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.ScanException",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.Services",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.ServicesException",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.ServicesListenerList",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.UsbPorts",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.adapter.UsbDeviceAdapter",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.adapter.UsbPipeAdapter",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.adapter.UsbServicesAdapter",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.descriptors.SimpleUsbConfigurationDescriptor",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.descriptors.SimpleUsbDescriptor",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.descriptors.SimpleUsbDeviceDescriptor",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.descriptors.SimpleUsbEndpointDescriptor",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.descriptors.SimpleUsbInterfaceDescriptor",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ },
+ {
+  "name": "org.usb4java.javax.descriptors.SimpleUsbStringDescriptor",
+  "allDeclaredFields": true,
+  "allDeclaredMethods": true,
+  "allDeclaredConstructors": true,
+  "allPublicMethods": true
+ }
+]
