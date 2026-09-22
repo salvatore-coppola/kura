@@ -83,10 +83,10 @@ public final class KuraAtomosLauncher {
         raiseStartLevel(framework, Integer.getInteger("kura.atomos.startLevel", 6));
         long startedMs = (System.nanoTime() - t0) / 1_000_000;
         if (System.getProperty("kura.atomos.diag.comm") != null) {
-            commDiag(framework.getBundleContext(), System.getProperty("kura.atomos.diag.comm"));
+            runDiag("comm diag", () -> commDiag(framework.getBundleContext(), System.getProperty("kura.atomos.diag.comm")));
         }
         if (Boolean.getBoolean("kura.atomos.diag.hid")) {
-            hidDiag(framework.getBundleContext());
+            runDiag("hid diag", () -> hidDiag(framework.getBundleContext()));
         }
 
         if (Boolean.getBoolean(DUMP_PROPERTY)) {
@@ -300,6 +300,19 @@ public final class KuraAtomosLauncher {
             }
         }
         ctx.ungetService(scrRef);
+    }
+
+    private static void runDiag(String name, Runnable diag) throws InterruptedException {
+        Thread thread = new Thread(diag, name);
+        thread.setDaemon(true);
+        thread.start();
+        thread.join(Integer.getInteger("kura.atomos.diag.timeout", 30) * 1000L);
+        if (thread.isAlive()) {
+            System.out.println(name + " did not finish within the timeout, still running:");
+            for (StackTraceElement e : thread.getStackTrace()) {
+                System.out.println("    at " + e);
+            }
+        }
     }
 
     private static void commDiag(BundleContext ctx, String port) {
